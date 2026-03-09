@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
-import { collection, addDoc, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
 
@@ -10,19 +10,23 @@ const DRINK_OPTIONS = [
   { value: "none", label: "🚫 Nothing" },
 ];
 
+const emptyForm = {
+  date: new Date().toISOString().split("T")[0],
+  type: "home",
+  location: "",
+  steams: 3,
+  drink: "beer",
+  drinks: 0,
+  companions: "",
+};
+
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [saunas, setSaunas] = useState([]);
-  const [form, setForm] = useState({
-    date: new Date().toISOString().split("T")[0],
-    type: "home",
-    location: "",
-    steams: 3,
-    drink: "beer",
-    drinks: 0,
-    companions: "",
-  });
+  const [form, setForm] = useState(emptyForm);
   const [showForm, setShowForm] = useState(false);
+  const [editSession, setEditSession] = useState(null); // session being edited
+  const [editForm, setEditForm] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,16 +38,13 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-  if (!user) return;
-  console.log("USER UID:", user.uid);  // ← lisa siia
-  const q = query(collection(db, "users", user.uid, "saunas"), orderBy("date", "desc"));
-const unsub = onSnapshot(q, (snap) => {
-  console.log("USER UID:", user.uid);
-  console.log("SNAP SIZE:", snap.size);
-  setSaunas(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-});
-return unsub;
-}, [user]);
+    if (!user) return;
+    const q = query(collection(db, "users", user.uid, "saunas"), orderBy("date", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      setSaunas(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, [user]);
 
   const handleAdd = async () => {
     if (!form.date) return;
@@ -57,16 +58,44 @@ return unsub;
       companions: form.companions.split(",").map((s) => s.trim()).filter(Boolean),
       createdAt: new Date().toISOString(),
     });
-    setForm({
-      date: new Date().toISOString().split("T")[0],
-      type: "home",
-      location: "",
-      steams: 3,
-      drink: "beer",
-      drinks: 0,
-      companions: "",
-    });
+    setForm(emptyForm);
     setShowForm(false);
+  };
+
+  const openEdit = (s) => {
+    setEditSession(s);
+    setEditForm({
+      date: s.date,
+      type: s.type,
+      location: s.location || "",
+      steams: s.steams || 3,
+      drink: s.drink || "beer",
+      drinks: s.drinks || 0,
+      companions: (s.companions || []).join(", "),
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editSession) return;
+    await updateDoc(doc(db, "users", user.uid, "saunas", editSession.id), {
+      date: editForm.date,
+      type: editForm.type,
+      location: editForm.location,
+      steams: Number(editForm.steams),
+      drink: editForm.drink,
+      drinks: editForm.drink === "none" ? 0 : Number(editForm.drinks),
+      companions: editForm.companions.split(",").map((s) => s.trim()).filter(Boolean),
+    });
+    setEditSession(null);
+    setEditForm(null);
+  };
+
+  const handleDelete = async () => {
+    if (!editSession) return;
+    if (!window.confirm("Kustuta see sessioon?")) return;
+    await deleteDoc(doc(db, "users", user.uid, "saunas", editSession.id));
+    setEditSession(null);
+    setEditForm(null);
   };
 
   // Stats
@@ -83,28 +112,98 @@ return unsub;
     ? (totalBeers / thisYearSaunas.filter((s) => s.drink === "beer").length).toFixed(1) : 0;
   const maxBeers = Math.max(0, ...thisYearSaunas.map((s) => s.drinks || 0));
 
-  // Away TOP
   const awayCount = {};
   awaySaunas.forEach((s) => { if (s.location) awayCount[s.location] = (awayCount[s.location] || 0) + 1; });
   const awayTop = Object.entries(awayCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-  // Companions TOP
   const compCount = {};
   thisYearSaunas.forEach((s) => (s.companions || []).forEach((c) => { compCount[c] = (compCount[c] || 0) + 1; }));
   const compTop = Object.entries(compCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-  // Week tempo
   const weeksSinceJan1 = Math.ceil((new Date() - new Date(thisYear + "-01-01")) / (7 * 24 * 60 * 60 * 1000));
   const tempoThisYear = (thisYearSaunas.length / weeksSinceJan1).toFixed(1);
   const tempoLastYear = lastYearSaunas.length ? (lastYearSaunas.length / 52).toFixed(1) : "—";
 
-  // Longest gap
   const sorted = [...thisYearSaunas].sort((a, b) => a.date.localeCompare(b.date));
   let longestGap = 0;
   for (let i = 1; i < sorted.length; i++) {
     const diff = (new Date(sorted[i].date) - new Date(sorted[i - 1].date)) / (1000 * 60 * 60 * 24);
     if (diff > longestGap) longestGap = diff;
   }
+
+  const FormFields = ({ f, setF }) => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-stone-400 text-xs">Kuupäev</label>
+          <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })}
+            className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
+        </div>
+        <div>
+          <label className="text-stone-400 text-xs">Tüüp</label>
+          <select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}
+            className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white">
+            <option value="home">🏠 Kodus</option>
+            <option value="away">✈️ Võõrsil</option>
+          </select>
+        </div>
+      </div>
+
+      {f.type === "away" && (
+        <div>
+          <label className="text-stone-400 text-xs">Koht</label>
+          <input type="text" placeholder="nt. Nõmme saun" value={f.location}
+            onChange={(e) => setF({ ...f, location: e.target.value })}
+            className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
+        </div>
+      )}
+
+      <div>
+        <label className="text-stone-400 text-xs">Leilid 🌊</label>
+        <div className="flex gap-2 mt-2 flex-wrap">
+          {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+            <button key={n} onClick={() => setF({ ...f, steams: n })}
+              className={`w-9 h-9 rounded-lg font-semibold text-sm transition ${f.steams === n ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-300 hover:bg-stone-600"}`}>
+              {n}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="text-stone-400 text-xs">Jook</label>
+        <div className="flex gap-2 mt-2">
+          {DRINK_OPTIONS.map((opt) => (
+            <button key={opt.value} onClick={() => setF({ ...f, drink: opt.value, drinks: 0 })}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${f.drink === opt.value ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-300 hover:bg-stone-600"}`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {f.drink !== "none" && (
+        <div>
+          <label className="text-stone-400 text-xs">Kogus</label>
+          <div className="flex gap-2 mt-2 flex-wrap">
+            {[0,1,2,3,4,5,6,7,8,9,10].map((n) => (
+              <button key={n} onClick={() => setF({ ...f, drinks: n })}
+                className={`w-9 h-9 rounded-lg font-semibold text-sm transition ${f.drinks === n ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-300 hover:bg-stone-600"}`}>
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <label className="text-stone-400 text-xs">Kaaslased (komaga eraldatud)</label>
+        <input type="text" placeholder="nt. Jüri, Mart" value={f.companions}
+          onChange={(e) => setF({ ...f, companions: e.target.value })}
+          className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-stone-900 text-white p-4 max-w-2xl mx-auto">
@@ -222,81 +321,12 @@ return unsub;
         + Lisa saunasessioon
       </button>
 
-      {/* Form */}
+      {/* Add Form */}
       {showForm && (
-        <div className="bg-stone-800 rounded-xl p-5 mb-4 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-stone-400 text-xs">Kuupäev</label>
-              <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
-                className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
-            </div>
-            <div>
-              <label className="text-stone-400 text-xs">Tüüp</label>
-              <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}
-                className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white">
-                <option value="home">🏠 Kodus</option>
-                <option value="away">✈️ Võõrsil</option>
-              </select>
-            </div>
-          </div>
-
-          {form.type === "away" && (
-            <div>
-              <label className="text-stone-400 text-xs">Koht</label>
-              <input type="text" placeholder="nt. Nõmme saun" value={form.location}
-                onChange={(e) => setForm({ ...form, location: e.target.value })}
-                className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
-            </div>
-          )}
-
-          <div>
-            <label className="text-stone-400 text-xs">Leilid 🌊</label>
-            <div className="flex gap-2 mt-2 flex-wrap">
-              {[1,2,3,4,5,6,7,8,9,10].map((n) => (
-                <button key={n} onClick={() => setForm({ ...form, steams: n })}
-                  className={`w-9 h-9 rounded-lg font-semibold text-sm transition ${form.steams === n ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-300 hover:bg-stone-600"}`}>
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="text-stone-400 text-xs">Jook</label>
-            <div className="flex gap-2 mt-2">
-              {DRINK_OPTIONS.map((opt) => (
-                <button key={opt.value} onClick={() => setForm({ ...form, drink: opt.value, drinks: 0 })}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${form.drink === opt.value ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-300 hover:bg-stone-600"}`}>
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {form.drink !== "none" && (
-            <div>
-              <label className="text-stone-400 text-xs">Kogus</label>
-              <div className="flex gap-2 mt-2 flex-wrap">
-                {[0,1,2,3,4,5,6,7,8,9,10].map((n) => (
-                  <button key={n} onClick={() => setForm({ ...form, drinks: n })}
-                    className={`w-9 h-9 rounded-lg font-semibold text-sm transition ${form.drinks === n ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-300 hover:bg-stone-600"}`}>
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div>
-            <label className="text-stone-400 text-xs">Kaaslased (komaga eraldatud)</label>
-            <input type="text" placeholder="nt. Jüri, Mart" value={form.companions}
-              onChange={(e) => setForm({ ...form, companions: e.target.value })}
-              className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
-          </div>
-
+        <div className="bg-stone-800 rounded-xl p-5 mb-4">
+          <FormFields f={form} setF={setForm} />
           <button onClick={handleAdd}
-            className="w-full bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition">
+            className="w-full bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition mt-4">
             Salvesta 🧖
           </button>
         </div>
@@ -305,7 +335,8 @@ return unsub;
       {/* Session list */}
       <div className="space-y-2">
         {saunas.map((s) => (
-          <div key={s.id} className="bg-stone-800 rounded-xl p-4 flex justify-between items-center">
+          <div key={s.id} onClick={() => openEdit(s)}
+            className="bg-stone-800 rounded-xl p-4 flex justify-between items-center cursor-pointer hover:bg-stone-700 transition">
             <div>
               <div className="font-semibold">{s.date} · {s.location || (s.type === "home" ? "Kodus" : "Võõrsil")}</div>
               <div className="text-stone-400 text-sm mt-1">
@@ -317,6 +348,33 @@ return unsub;
           </div>
         ))}
       </div>
+
+      {/* Edit Modal */}
+      {editSession && editForm && (
+        <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) { setEditSession(null); setEditForm(null); } }}>
+          <div className="bg-stone-800 rounded-2xl p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold">Muuda sessiooni</h2>
+              <button onClick={() => { setEditSession(null); setEditForm(null); }}
+                className="text-stone-400 hover:text-white text-xl">✕</button>
+            </div>
+
+            <FormFields f={editForm} setF={setEditForm} />
+
+            <div className="flex gap-3 mt-4">
+              <button onClick={handleDelete}
+                className="flex-1 bg-red-600 hover:bg-red-700 font-semibold py-3 rounded-xl transition text-sm">
+                🗑 Kustuta
+              </button>
+              <button onClick={handleSaveEdit}
+                className="flex-2 flex-grow bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition">
+                Salvesta ✓
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
