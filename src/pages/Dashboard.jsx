@@ -37,7 +37,8 @@ export default function Dashboard() {
     if (!user) return;
     const q = query(collection(db, "users", user.uid, "saunas"), orderBy("date", "desc"));
     const unsub = onSnapshot(q, (snap) => {
-  setSaunas(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  sconsole.log("SNAP SIZE:", snap.size);
+setSaunas(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     return unsub;
   }, [user]);
