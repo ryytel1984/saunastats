@@ -37,9 +37,13 @@ export default function Dashboard() {
   if (!user) return;
   console.log("USER UID:", user.uid);  // ← lisa siia
   const q = query(collection(db, "users", user.uid, "saunas"), orderBy("date", "desc"));
-    });
-    return unsub;
-  }, [user]);
+const unsub = onSnapshot(q, (snap) => {
+  console.log("USER UID:", user.uid);
+  console.log("SNAP SIZE:", snap.size);
+  setSaunas(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+});
+return unsub;
+}, [user]);
 
   const handleAdd = async () => {
     if (!form.date) return;
