@@ -34,11 +34,9 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
-    const q = query(collection(db, "users", user.uid, "saunas"), orderBy("date", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
-  console.log("SNAP SIZE:", snap.size);
-setSaunas(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  if (!user) return;
+  console.log("USER UID:", user.uid);  // ← lisa siia
+  const q = query(collection(db, "users", user.uid, "saunas"), orderBy("date", "desc"));
     });
     return unsub;
   }, [user]);
