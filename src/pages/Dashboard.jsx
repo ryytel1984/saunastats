@@ -20,6 +20,82 @@ const emptyForm = {
   companions: "",
 };
 
+function FormFields({ f, setF }) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-stone-400 text-xs">Kuupäev</label>
+          <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })}
+            className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
+        </div>
+        <div>
+          <label className="text-stone-400 text-xs">Tüüp</label>
+          <select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}
+            className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white">
+            <option value="home">🏠 Kodus</option>
+            <option value="away">✈️ Võõrsil</option>
+          </select>
+        </div>
+      </div>
+
+      {f.type === "away" && (
+        <div>
+          <label className="text-stone-400 text-xs">Koht</label>
+          <input type="text" placeholder="nt. Nõmme saun" value={f.location}
+            onChange={(e) => setF({ ...f, location: e.target.value })}
+            className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
+        </div>
+      )}
+
+      <div>
+        <label className="text-stone-400 text-xs">Leilid 🌊</label>
+        <div className="flex gap-2 mt-2 flex-wrap">
+          {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+            <button key={n} onClick={() => setF({ ...f, steams: n })}
+              className={`w-9 h-9 rounded-lg font-semibold text-sm transition ${f.steams === n ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-300 hover:bg-stone-600"}`}>
+              {n}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="text-stone-400 text-xs">Jook</label>
+        <div className="flex gap-2 mt-2">
+          {DRINK_OPTIONS.map((opt) => (
+            <button key={opt.value} onClick={() => setF({ ...f, drink: opt.value, drinks: 0 })}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${f.drink === opt.value ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-300 hover:bg-stone-600"}`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {f.drink !== "none" && (
+        <div>
+          <label className="text-stone-400 text-xs">Kogus</label>
+          <div className="flex gap-2 mt-2 flex-wrap">
+            {[0,1,2,3,4,5,6,7,8,9,10].map((n) => (
+              <button key={n} onClick={() => setF({ ...f, drinks: n })}
+                className={`w-9 h-9 rounded-lg font-semibold text-sm transition ${f.drinks === n ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-300 hover:bg-stone-600"}`}>
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <label className="text-stone-400 text-xs">Kaaslased (komaga eraldatud)</label>
+        <input type="text" placeholder="nt. Jüri, Mart" value={f.companions}
+          onChange={(e) => setF({ ...f, companions: e.target.value })}
+          className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [saunas, setSaunas] = useState([]);
@@ -130,80 +206,6 @@ export default function Dashboard() {
     const diff = (new Date(sorted[i].date) - new Date(sorted[i - 1].date)) / (1000 * 60 * 60 * 24);
     if (diff > longestGap) longestGap = diff;
   }
-
-  const FormFields = ({ f, setF }) => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-stone-400 text-xs">Kuupäev</label>
-          <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })}
-            className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
-        </div>
-        <div>
-          <label className="text-stone-400 text-xs">Tüüp</label>
-          <select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}
-            className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white">
-            <option value="home">🏠 Kodus</option>
-            <option value="away">✈️ Võõrsil</option>
-          </select>
-        </div>
-      </div>
-
-      {f.type === "away" && (
-        <div>
-          <label className="text-stone-400 text-xs">Koht</label>
-          <input type="text" placeholder="nt. Nõmme saun" value={f.location}
-            onChange={(e) => setF({ ...f, location: e.target.value })}
-            className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
-        </div>
-      )}
-
-      <div>
-        <label className="text-stone-400 text-xs">Leilid 🌊</label>
-        <div className="flex gap-2 mt-2 flex-wrap">
-          {[1,2,3,4,5,6,7,8,9,10].map((n) => (
-            <button key={n} onClick={() => setF({ ...f, steams: n })}
-              className={`w-9 h-9 rounded-lg font-semibold text-sm transition ${f.steams === n ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-300 hover:bg-stone-600"}`}>
-              {n}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label className="text-stone-400 text-xs">Jook</label>
-        <div className="flex gap-2 mt-2">
-          {DRINK_OPTIONS.map((opt) => (
-            <button key={opt.value} onClick={() => setF({ ...f, drink: opt.value, drinks: 0 })}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${f.drink === opt.value ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-300 hover:bg-stone-600"}`}>
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {f.drink !== "none" && (
-        <div>
-          <label className="text-stone-400 text-xs">Kogus</label>
-          <div className="flex gap-2 mt-2 flex-wrap">
-            {[0,1,2,3,4,5,6,7,8,9,10].map((n) => (
-              <button key={n} onClick={() => setF({ ...f, drinks: n })}
-                className={`w-9 h-9 rounded-lg font-semibold text-sm transition ${f.drinks === n ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-300 hover:bg-stone-600"}`}>
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div>
-        <label className="text-stone-400 text-xs">Kaaslased (komaga eraldatud)</label>
-        <input type="text" placeholder="nt. Jüri, Mart" value={f.companions}
-          onChange={(e) => setF({ ...f, companions: e.target.value })}
-          className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-stone-900 text-white p-4 max-w-2xl mx-auto">
