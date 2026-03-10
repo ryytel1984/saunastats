@@ -225,6 +225,9 @@ export default function Dashboard() {
   const sessionsWithBeers = thisYearSaunas.filter((s) => getBeers(s) > 0);
   const avgBeers = sessionsWithBeers.length ? (totalBeers / sessionsWithBeers.length).toFixed(1) : "—";
   const maxBeers = Math.max(0, ...thisYearSaunas.map((s) => getBeers(s)));
+  const sessionsWithWaters = thisYearSaunas.filter((s) => getWaters(s) > 0);
+  const avgWaters = sessionsWithWaters.length ? (totalWaters / sessionsWithWaters.length).toFixed(1) : "—";
+  const maxWaters = Math.max(0, ...thisYearSaunas.map((s) => getWaters(s)));
 
   const weeksSinceJan1 = Math.max(1, Math.ceil((new Date() - new Date(thisYear + "-01-01")) / (7 * 24 * 60 * 60 * 1000)));
   const tempoThisYear = (thisYearSaunas.length / weeksSinceJan1).toFixed(1);
@@ -339,18 +342,20 @@ export default function Dashboard() {
             <div className="w-6 text-right font-bold text-sky-400 text-sm">{totalWaters}</div>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-stone-700">
-          <div className="text-center">
-            <div className="text-lg font-bold text-orange-400">{avgBeers}</div>
-            <div className="text-stone-500 text-xs">õlut/saun</div>
+        <div className="mt-3 pt-3 border-t border-stone-700 space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-stone-400 text-xs">🍺 Õlu keskmine</span>
+            <div className="flex gap-4">
+              <span className="text-xs text-stone-500">keskim <span className="text-orange-400 font-bold">{avgBeers}</span></span>
+              <span className="text-xs text-stone-500">rekord <span className="text-orange-400 font-bold">{maxBeers}</span></span>
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-lg font-bold text-orange-400">{maxBeers}</div>
-            <div className="text-stone-500 text-xs">rekord</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-bold text-orange-400">{totalBeers + totalWaters}</div>
-            <div className="text-stone-500 text-xs">kokku</div>
+          <div className="flex justify-between items-center">
+            <span className="text-stone-400 text-xs">💧 Vee keskmine</span>
+            <div className="flex gap-4">
+              <span className="text-xs text-stone-500">keskim <span className="text-sky-400 font-bold">{avgWaters}</span></span>
+              <span className="text-xs text-stone-500">rekord <span className="text-sky-400 font-bold">{maxWaters}</span></span>
+            </div>
           </div>
         </div>
       </div>
