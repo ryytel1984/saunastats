@@ -6,6 +6,17 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } f
 
 const MONTHS = ["Jan","Feb","Mar","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dets"];
 
+function getBeers(s) {
+  if (s.beers !== undefined) return s.beers || 0;
+  if (s.drink === "beer") return s.drinks || 0;
+  return 0;
+}
+function getWaters(s) {
+  if (s.waters !== undefined) return s.waters || 0;
+  if (s.drink === "water") return s.drinks || 0;
+  return 0;
+}
+
 export default function Profile() {
   const { username } = useParams();
   const [profile, setProfile] = useState(null);
@@ -53,12 +64,13 @@ export default function Profile() {
   const awaySaunas = thisYearSaunas.filter((s) => s.type === "away");
   const lastYearAwaySaunas = lastYearSaunas.filter((s) => s.type === "away");
 
-  const totalBeers = thisYearSaunas.filter((s) => s.drink === "beer").reduce((a, s) => a + (s.drinks || 0), 0);
+  const totalBeers = thisYearSaunas.reduce((a, s) => a + getBeers(s), 0);
+  const totalWaters = thisYearSaunas.reduce((a, s) => a + getWaters(s), 0);
   const totalSteams = thisYearSaunas.reduce((a, s) => a + (s.steams || 0), 0);
   const avgSteams = thisYearSaunas.length ? (totalSteams / thisYearSaunas.length).toFixed(1) : "—";
-  const avgBeers = thisYearSaunas.filter((s) => s.drink === "beer").length
-    ? (totalBeers / thisYearSaunas.filter((s) => s.drink === "beer").length).toFixed(1) : "—";
-  const maxBeers = Math.max(0, ...thisYearSaunas.map((s) => s.drinks || 0));
+  const sessionsWithBeers = thisYearSaunas.filter((s) => getBeers(s) > 0);
+  const avgBeers = sessionsWithBeers.length ? (totalBeers / sessionsWithBeers.length).toFixed(1) : "—";
+  const maxBeers = Math.max(0, ...thisYearSaunas.map((s) => getBeers(s)));
 
   const weeksSinceJan1 = Math.max(1, Math.ceil((new Date() - new Date(thisYear + "-01-01")) / (7 * 24 * 60 * 60 * 1000)));
   const tempoThisYear = (thisYearSaunas.length / weeksSinceJan1).toFixed(1);
@@ -108,7 +120,7 @@ export default function Profile() {
         <Link to="/leaderboard" className="ml-auto text-stone-400 hover:text-white text-sm">Leaderboard</Link>
       </div>
 
-      {/* Year comparison — same period */}
+      {/* Year comparison */}
       <div className="bg-stone-800 rounded-xl p-4 mb-4">
         <div className="text-stone-400 text-xs mb-1 uppercase tracking-wide">Aasta võrdlus</div>
         <div className="text-stone-500 text-xs mb-3">sama periood — tänase kuupäevani</div>
@@ -127,47 +139,65 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-stone-800 rounded-xl p-4 col-span-2">
-          <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🏠 Kodus vs Võõrsil</div>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-16 text-sm text-stone-300">Kodus</div>
-              <div className="flex-1 bg-stone-700 rounded-full h-3">
-                <div className="bg-orange-500 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(homeSaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
-              </div>
-              <div className="w-6 text-right font-bold text-orange-400 text-sm">{homeSaunas.length}</div>
+      {/* Kodus vs Voorrsil */}
+      <div className="bg-stone-800 rounded-xl p-4 mb-4">
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🏠 Kodus vs Võõrsil</div>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-16 text-sm text-stone-300">Kodus</div>
+            <div className="flex-1 bg-stone-700 rounded-full h-3">
+              <div className="bg-orange-500 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(homeSaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-16 text-sm text-stone-300">Võõrsil</div>
-              <div className="flex-1 bg-stone-700 rounded-full h-3">
-                <div className="bg-sky-400 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(awaySaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
-              </div>
-              <div className="w-6 text-right font-bold text-sky-400 text-sm">{awaySaunas.length}</div>
-            </div>
+            <div className="w-6 text-right font-bold text-orange-400 text-sm">{homeSaunas.length}</div>
           </div>
-          {thisYearSaunas.length > 0 && (
-            <div className="text-stone-500 text-xs mt-3">
-              {Math.round((homeSaunas.length / thisYearSaunas.length) * 100)}% kodus · {Math.round((awaySaunas.length / thisYearSaunas.length) * 100)}% võõrsil
+          <div className="flex items-center gap-3">
+            <div className="w-16 text-sm text-stone-300">Võõrsil</div>
+            <div className="flex-1 bg-stone-700 rounded-full h-3">
+              <div className="bg-sky-400 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(awaySaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
             </div>
-          )}
+            <div className="w-6 text-right font-bold text-sky-400 text-sm">{awaySaunas.length}</div>
+          </div>
         </div>
-        <div className="bg-stone-800 rounded-xl p-4">
-          <div className="text-stone-400 text-xs mb-2">🍺 Õlled ({thisYear})</div>
-          <div className="flex justify-between">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-400">{totalBeers}</div>
-              <div className="text-stone-500 text-xs">kokku</div>
+        {thisYearSaunas.length > 0 && (
+          <div className="text-stone-500 text-xs mt-3">
+            {Math.round((homeSaunas.length / thisYearSaunas.length) * 100)}% kodus · {Math.round((awaySaunas.length / thisYearSaunas.length) * 100)}% võõrsil
+          </div>
+        )}
+      </div>
+
+      {/* Joogid */}
+      <div className="bg-stone-800 rounded-xl p-4 mb-4">
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🍺 Joogid ({thisYear})</div>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-16 text-sm text-stone-300">🍺 Õlut</div>
+            <div className="flex-1 bg-stone-700 rounded-full h-3">
+              <div className="bg-orange-500 h-3 rounded-full transition-all"
+                style={{ width: (totalBeers + totalWaters) > 0 ? `${(totalBeers / (totalBeers + totalWaters)) * 100}%` : "0%" }} />
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-400">{avgBeers}</div>
-              <div className="text-stone-500 text-xs">keskmine</div>
+            <div className="w-6 text-right font-bold text-orange-400 text-sm">{totalBeers}</div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-16 text-sm text-stone-300">💧 Vett</div>
+            <div className="flex-1 bg-stone-700 rounded-full h-3">
+              <div className="bg-sky-400 h-3 rounded-full transition-all"
+                style={{ width: (totalBeers + totalWaters) > 0 ? `${(totalWaters / (totalBeers + totalWaters)) * 100}%` : "0%" }} />
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-400">{maxBeers}</div>
-              <div className="text-stone-500 text-xs">rekord</div>
-            </div>
+            <div className="w-6 text-right font-bold text-sky-400 text-sm">{totalWaters}</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-stone-700">
+          <div className="text-center">
+            <div className="text-lg font-bold text-orange-400">{avgBeers}</div>
+            <div className="text-stone-500 text-xs">õlut/saun</div>
+          </div>
+          <div className="text-center">
+            <div className="text-lg font-bold text-orange-400">{maxBeers}</div>
+            <div className="text-stone-500 text-xs">rekord</div>
+          </div>
+          <div className="text-center">
+            <div className="text-lg font-bold text-orange-400">{totalBeers + totalWaters}</div>
+            <div className="text-stone-500 text-xs">kokku</div>
           </div>
         </div>
       </div>
@@ -209,7 +239,7 @@ export default function Profile() {
         </ResponsiveContainer>
       </div>
 
-      {/* Võõrsil TOP — both years */}
+      {/* Võõrsil TOP */}
       {(awayTop.length > 0 || awayTopLast.length > 0) && (
         <div className="grid grid-cols-2 gap-3 mb-4">
           {awayTop.length > 0 && (
@@ -262,18 +292,24 @@ export default function Profile() {
           ))}
         </div>
         <div className="space-y-2">
-          {tabSaunas.map((s, i) => (
-            <div key={i} className="bg-stone-700 rounded-xl p-3 flex justify-between items-center">
-              <div>
-                <div className="font-semibold text-sm">{s.date} · {s.location || (s.type === "home" ? "Kodus" : "Võõrsil")}</div>
-                <div className="text-stone-400 text-xs mt-1">
-                  🌊 {s.steams} leili · {s.drink === "beer" ? "🍺" : s.drink === "water" ? "💧" : "🚫"} {s.drink !== "none" ? s.drinks : ""}
-                  {s.companions?.length > 0 && ` · 👥 ${s.companions.join(", ")}`}
+          {tabSaunas.map((s, i) => {
+            const b = getBeers(s);
+            const w = getWaters(s);
+            return (
+              <div key={i} className="bg-stone-700 rounded-xl p-3 flex justify-between items-center">
+                <div>
+                  <div className="font-semibold text-sm">{s.date} · {s.location || (s.type === "home" ? "Kodus" : "Võõrsil")}</div>
+                  <div className="text-stone-400 text-xs mt-1">
+                    🌊 {s.steams}
+                    {b > 0 && ` · 🍺 ${b}`}
+                    {w > 0 && ` · 💧 ${w}`}
+                    {s.companions?.length > 0 && ` · 👥 ${s.companions.join(", ")}`}
+                  </div>
                 </div>
+                <div className="text-stone-500 text-sm ml-2">{s.type === "home" ? "🏠" : "✈️"}</div>
               </div>
-              <div className="text-stone-500 text-sm ml-2">{s.type === "home" ? "🏠" : "✈️"}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

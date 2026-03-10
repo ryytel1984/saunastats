@@ -5,12 +5,6 @@ import { signOut } from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-const DRINK_OPTIONS = [
-  { value: "beer", label: "🍺 Beer" },
-  { value: "water", label: "💧 Water/other" },
-  { value: "none", label: "🚫 Nothing" },
-];
-
 const MONTHS = ["Jan","Feb","Mar","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dets"];
 
 const emptyForm = {
@@ -18,42 +12,61 @@ const emptyForm = {
   type: "home",
   location: "",
   steams: 3,
-  drink: "beer",
-  drinks: 0,
+  beers: 0,
+  waters: 0,
   companions: "",
 };
+
+// Helper: read beers from both old and new format
+function getBeers(s) {
+  if (s.beers !== undefined) return s.beers || 0;
+  if (s.drink === "beer") return s.drinks || 0;
+  return 0;
+}
+function getWaters(s) {
+  if (s.waters !== undefined) return s.waters || 0;
+  if (s.drink === "water") return s.drinks || 0;
+  return 0;
+}
+
+function DrinkRow({ emoji, label, value, onChange, color }) {
+  return (
+    <div>
+      <label className="text-stone-400 text-xs">{emoji} {label}</label>
+      <div className="flex gap-2 mt-2 flex-wrap">
+        {[0,1,2,3,4,5,6,7,8,9,10].map((n) => (
+          <button key={n} onClick={() => onChange(n)}
+            className={`w-9 h-9 rounded-lg font-semibold text-sm transition ${value === n ? color : "bg-stone-700 text-stone-300 hover:bg-stone-600"}`}>
+            {n}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function AutocompleteInput({ value, onChange, suggestions, placeholder, className }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-
   const filtered = suggestions
     .filter((s) => s.toLowerCase().includes(value.toLowerCase()) && s.toLowerCase() !== value.toLowerCase())
     .slice(0, 5);
-
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-
   return (
     <div className="relative" ref={ref}>
-      <input
-        type="text"
-        value={value}
-        placeholder={placeholder}
+      <input type="text" value={value} placeholder={placeholder}
         onChange={(e) => { onChange(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
-        className={className}
-      />
+        className={className} />
       {open && filtered.length > 0 && (
         <div className="absolute z-10 w-full bg-stone-700 rounded-lg mt-1 shadow-lg overflow-hidden">
           {filtered.map((s) => (
             <div key={s} onMouseDown={() => { onChange(s); setOpen(false); }}
-              className="px-3 py-2 hover:bg-stone-600 cursor-pointer text-sm text-white">
-              {s}
-            </div>
+              className="px-3 py-2 hover:bg-stone-600 cursor-pointer text-sm text-white">{s}</div>
           ))}
         </div>
       )}
@@ -79,20 +92,14 @@ function FormFields({ f, setF, locationSuggestions, companionSuggestions }) {
           </select>
         </div>
       </div>
-
       {f.type === "away" && (
         <div>
           <label className="text-stone-400 text-xs">Koht</label>
-          <AutocompleteInput
-            value={f.location}
-            onChange={(val) => setF({ ...f, location: val })}
-            suggestions={locationSuggestions}
-            placeholder="nt. Nõmme saun"
-            className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white"
-          />
+          <AutocompleteInput value={f.location} onChange={(val) => setF({ ...f, location: val })}
+            suggestions={locationSuggestions} placeholder="nt. Nõmme saun"
+            className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
         </div>
       )}
-
       <div>
         <label className="text-stone-400 text-xs">Leilid 🌊</label>
         <div className="flex gap-2 mt-2 flex-wrap">
@@ -104,42 +111,13 @@ function FormFields({ f, setF, locationSuggestions, companionSuggestions }) {
           ))}
         </div>
       </div>
-
-      <div>
-        <label className="text-stone-400 text-xs">Jook</label>
-        <div className="flex gap-2 mt-2">
-          {DRINK_OPTIONS.map((opt) => (
-            <button key={opt.value} onClick={() => setF({ ...f, drink: opt.value, drinks: 0 })}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${f.drink === opt.value ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-300 hover:bg-stone-600"}`}>
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {f.drink !== "none" && (
-        <div>
-          <label className="text-stone-400 text-xs">Kogus</label>
-          <div className="flex gap-2 mt-2 flex-wrap">
-            {[0,1,2,3,4,5,6,7,8,9,10].map((n) => (
-              <button key={n} onClick={() => setF({ ...f, drinks: n })}
-                className={`w-9 h-9 rounded-lg font-semibold text-sm transition ${f.drinks === n ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-300 hover:bg-stone-600"}`}>
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
+      <DrinkRow emoji="🍺" label="Õlut" value={f.beers} onChange={(n) => setF({ ...f, beers: n })} color="bg-orange-500 text-white" />
+      <DrinkRow emoji="💧" label="Vett" value={f.waters} onChange={(n) => setF({ ...f, waters: n })} color="bg-sky-500 text-white" />
       <div>
         <label className="text-stone-400 text-xs">Kaaslased (komaga eraldatud)</label>
-        <AutocompleteInput
-          value={f.companions}
-          onChange={(val) => setF({ ...f, companions: val })}
-          suggestions={companionSuggestions}
-          placeholder="nt. Jüri, Mart"
-          className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white"
-        />
+        <AutocompleteInput value={f.companions} onChange={(val) => setF({ ...f, companions: val })}
+          suggestions={companionSuggestions} placeholder="nt. Jüri, Mart"
+          className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
       </div>
     </div>
   );
@@ -182,8 +160,8 @@ export default function Dashboard() {
       type: form.type,
       location: form.location,
       steams: Number(form.steams),
-      drink: form.drink,
-      drinks: form.drink === "none" ? 0 : Number(form.drinks),
+      beers: Number(form.beers),
+      waters: Number(form.waters),
       companions: form.companions.split(",").map((s) => s.trim()).filter(Boolean),
       createdAt: new Date().toISOString(),
     });
@@ -198,8 +176,8 @@ export default function Dashboard() {
       type: s.type,
       location: s.location || "",
       steams: s.steams || 3,
-      drink: s.drink || "beer",
-      drinks: s.drinks || 0,
+      beers: getBeers(s),
+      waters: getWaters(s),
       companions: (s.companions || []).join(", "),
     });
   };
@@ -211,8 +189,8 @@ export default function Dashboard() {
       type: editForm.type,
       location: editForm.location,
       steams: Number(editForm.steams),
-      drink: editForm.drink,
-      drinks: editForm.drink === "none" ? 0 : Number(editForm.drinks),
+      beers: Number(editForm.beers),
+      waters: Number(editForm.waters),
       companions: editForm.companions.split(",").map((s) => s.trim()).filter(Boolean),
     });
     setEditSession(null);
@@ -240,12 +218,13 @@ export default function Dashboard() {
   const awaySaunas = thisYearSaunas.filter((s) => s.type === "away");
   const lastYearAwaySaunas = lastYearSaunas.filter((s) => s.type === "away");
 
-  const totalBeers = thisYearSaunas.filter((s) => s.drink === "beer").reduce((a, s) => a + (s.drinks || 0), 0);
+  const totalBeers = thisYearSaunas.reduce((a, s) => a + getBeers(s), 0);
+  const totalWaters = thisYearSaunas.reduce((a, s) => a + getWaters(s), 0);
   const totalSteams = thisYearSaunas.reduce((a, s) => a + (s.steams || 0), 0);
   const avgSteams = thisYearSaunas.length ? (totalSteams / thisYearSaunas.length).toFixed(1) : "—";
-  const avgBeers = thisYearSaunas.filter((s) => s.drink === "beer").length
-    ? (totalBeers / thisYearSaunas.filter((s) => s.drink === "beer").length).toFixed(1) : "—";
-  const maxBeers = Math.max(0, ...thisYearSaunas.map((s) => s.drinks || 0));
+  const sessionsWithBeers = thisYearSaunas.filter((s) => getBeers(s) > 0);
+  const avgBeers = sessionsWithBeers.length ? (totalBeers / sessionsWithBeers.length).toFixed(1) : "—";
+  const maxBeers = Math.max(0, ...thisYearSaunas.map((s) => getBeers(s)));
 
   const weeksSinceJan1 = Math.max(1, Math.ceil((new Date() - new Date(thisYear + "-01-01")) / (7 * 24 * 60 * 60 * 1000)));
   const tempoThisYear = (thisYearSaunas.length / weeksSinceJan1).toFixed(1);
@@ -294,7 +273,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Year comparison — same period */}
+      {/* Year comparison */}
       <div className="bg-stone-800 rounded-xl p-4 mb-4">
         <div className="text-stone-400 text-xs mb-1 uppercase tracking-wide">Aasta võrdlus</div>
         <div className="text-stone-500 text-xs mb-3">sama periood — tänase kuupäevani</div>
@@ -313,47 +292,65 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-stone-800 rounded-xl p-4 col-span-2">
-          <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🏠 Kodus vs Võõrsil</div>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-16 text-sm text-stone-300">Kodus</div>
-              <div className="flex-1 bg-stone-700 rounded-full h-3">
-                <div className="bg-orange-500 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(homeSaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
-              </div>
-              <div className="w-6 text-right font-bold text-orange-400 text-sm">{homeSaunas.length}</div>
+      {/* Kodus vs Voorrsil */}
+      <div className="bg-stone-800 rounded-xl p-4 mb-4">
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🏠 Kodus vs Võõrsil</div>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-16 text-sm text-stone-300">Kodus</div>
+            <div className="flex-1 bg-stone-700 rounded-full h-3">
+              <div className="bg-orange-500 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(homeSaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-16 text-sm text-stone-300">Võõrsil</div>
-              <div className="flex-1 bg-stone-700 rounded-full h-3">
-                <div className="bg-sky-400 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(awaySaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
-              </div>
-              <div className="w-6 text-right font-bold text-sky-400 text-sm">{awaySaunas.length}</div>
-            </div>
+            <div className="w-6 text-right font-bold text-orange-400 text-sm">{homeSaunas.length}</div>
           </div>
-          {thisYearSaunas.length > 0 && (
-            <div className="text-stone-500 text-xs mt-3">
-              {Math.round((homeSaunas.length / thisYearSaunas.length) * 100)}% kodus · {Math.round((awaySaunas.length / thisYearSaunas.length) * 100)}% võõrsil
+          <div className="flex items-center gap-3">
+            <div className="w-16 text-sm text-stone-300">Võõrsil</div>
+            <div className="flex-1 bg-stone-700 rounded-full h-3">
+              <div className="bg-sky-400 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(awaySaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
             </div>
-          )}
+            <div className="w-6 text-right font-bold text-sky-400 text-sm">{awaySaunas.length}</div>
+          </div>
         </div>
-        <div className="bg-stone-800 rounded-xl p-4">
-          <div className="text-stone-400 text-xs mb-2">🍺 Õlled ({thisYear})</div>
-          <div className="flex justify-between">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-400">{totalBeers}</div>
-              <div className="text-stone-500 text-xs">kokku</div>
+        {thisYearSaunas.length > 0 && (
+          <div className="text-stone-500 text-xs mt-3">
+            {Math.round((homeSaunas.length / thisYearSaunas.length) * 100)}% kodus · {Math.round((awaySaunas.length / thisYearSaunas.length) * 100)}% võõrsil
+          </div>
+        )}
+      </div>
+
+      {/* Joogid */}
+      <div className="bg-stone-800 rounded-xl p-4 mb-4">
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🍺 Joogid ({thisYear})</div>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-16 text-sm text-stone-300">🍺 Õlut</div>
+            <div className="flex-1 bg-stone-700 rounded-full h-3">
+              <div className="bg-orange-500 h-3 rounded-full transition-all"
+                style={{ width: (totalBeers + totalWaters) > 0 ? `${(totalBeers / (totalBeers + totalWaters)) * 100}%` : "0%" }} />
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-400">{avgBeers}</div>
-              <div className="text-stone-500 text-xs">keskmine</div>
+            <div className="w-6 text-right font-bold text-orange-400 text-sm">{totalBeers}</div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-16 text-sm text-stone-300">💧 Vett</div>
+            <div className="flex-1 bg-stone-700 rounded-full h-3">
+              <div className="bg-sky-400 h-3 rounded-full transition-all"
+                style={{ width: (totalBeers + totalWaters) > 0 ? `${(totalWaters / (totalBeers + totalWaters)) * 100}%` : "0%" }} />
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-400">{maxBeers}</div>
-              <div className="text-stone-500 text-xs">rekord</div>
-            </div>
+            <div className="w-6 text-right font-bold text-sky-400 text-sm">{totalWaters}</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-stone-700">
+          <div className="text-center">
+            <div className="text-lg font-bold text-orange-400">{avgBeers}</div>
+            <div className="text-stone-500 text-xs">õlut/saun</div>
+          </div>
+          <div className="text-center">
+            <div className="text-lg font-bold text-orange-400">{maxBeers}</div>
+            <div className="text-stone-500 text-xs">rekord</div>
+          </div>
+          <div className="text-center">
+            <div className="text-lg font-bold text-orange-400">{totalBeers + totalWaters}</div>
+            <div className="text-stone-500 text-xs">kokku</div>
           </div>
         </div>
       </div>
@@ -395,7 +392,7 @@ export default function Dashboard() {
         </ResponsiveContainer>
       </div>
 
-      {/* Võõrsil TOP — both years side by side */}
+      {/* Võõrsil TOP */}
       {(awayTop.length > 0 || awayTopLast.length > 0) && (
         <div className="grid grid-cols-2 gap-3 mb-4">
           {awayTop.length > 0 && (
@@ -437,10 +434,8 @@ export default function Dashboard() {
       )}
 
       {/* Add session button */}
-      <button
-        onClick={() => setShowForm(!showForm)}
-        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl mb-4 transition"
-      >
+      <button onClick={() => setShowForm(!showForm)}
+        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl mb-4 transition">
         + Lisa saunasessioon
       </button>
 
@@ -467,19 +462,25 @@ export default function Dashboard() {
           ))}
         </div>
         <div className="space-y-2">
-          {tabSaunas.map((s) => (
-            <div key={s.id} onClick={() => openEdit(s)}
-              className="bg-stone-700 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:bg-stone-600 transition">
-              <div>
-                <div className="font-semibold text-sm">{s.date} · {s.location || (s.type === "home" ? "Kodus" : "Võõrsil")}</div>
-                <div className="text-stone-400 text-xs mt-1">
-                  🌊 {s.steams} leili · {s.drink === "beer" ? "🍺" : s.drink === "water" ? "💧" : "🚫"} {s.drink !== "none" ? s.drinks : ""}
-                  {s.companions?.length > 0 && ` · 👥 ${s.companions.join(", ")}`}
+          {tabSaunas.map((s) => {
+            const b = getBeers(s);
+            const w = getWaters(s);
+            return (
+              <div key={s.id} onClick={() => openEdit(s)}
+                className="bg-stone-700 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:bg-stone-600 transition">
+                <div>
+                  <div className="font-semibold text-sm">{s.date} · {s.location || (s.type === "home" ? "Kodus" : "Võõrsil")}</div>
+                  <div className="text-stone-400 text-xs mt-1">
+                    🌊 {s.steams}
+                    {b > 0 && ` · 🍺 ${b}`}
+                    {w > 0 && ` · 💧 ${w}`}
+                    {s.companions?.length > 0 && ` · 👥 ${s.companions.join(", ")}`}
+                  </div>
                 </div>
+                <div className="text-stone-500 text-sm ml-2">{s.type === "home" ? "🏠" : "✈️"}</div>
               </div>
-              <div className="text-stone-500 text-sm ml-2">{s.type === "home" ? "🏠" : "✈️"}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
