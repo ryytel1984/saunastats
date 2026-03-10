@@ -125,7 +125,8 @@ export default function Profile() {
   const tabSaunas = saunas.filter((s) => s.date?.startsWith(activeTab));
 
   return (
-    <div className="min-h-screen bg-stone-900 text-white p-4 max-w-2xl mx-auto">
+    <div className="min-h-screen text-white" style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
+      <div className="max-w-2xl mx-auto p-4">
       <div className="flex items-center gap-4 mb-4">
         <img src={profile.avatarUrl} className="w-16 h-16 rounded-full object-cover shrink-0" alt="" />
         <div>
@@ -149,7 +150,7 @@ export default function Profile() {
 
       {/* Friends tab */}
       {activeMainTab === "friends" && (
-        <div className="bg-stone-800 rounded-xl p-4">
+        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4">
           {friendsList.length === 0 ? (
             <div className="text-stone-500 text-sm text-center py-8">No friends yet</div>
           ) : (
@@ -173,7 +174,7 @@ export default function Profile() {
       {/* Stats tab */}
       {activeMainTab === "stats" && (<>
 
-      <div className="bg-stone-800 rounded-xl p-4 mb-4">
+      <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 mb-4">
         <div className="text-stone-400 text-xs mb-1 uppercase tracking-wide">Year comparison</div>
         <div className="text-stone-500 text-xs mb-3">same period — up to today</div>
         <div className="flex justify-around">
@@ -191,7 +192,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="bg-stone-800 rounded-xl p-4 mb-4">
+      <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 mb-4">
         <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🏠 Home vs Away</div>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -216,7 +217,7 @@ export default function Profile() {
         )}
       </div>
 
-      <div className="bg-stone-800 rounded-xl p-4 mb-4">
+      <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 mb-4">
         <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🍺 Drinks ({thisYear})</div>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -254,7 +255,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="bg-stone-800 rounded-xl p-4 mb-4">
+      <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 mb-4">
         <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📅 Pace & Steams</div>
         <div className="flex justify-around">
           <div className="text-center">
@@ -275,7 +276,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="bg-stone-800 rounded-xl p-4 mb-4">
+      <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 mb-4">
         <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📊 Monthly comparison</div>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
@@ -292,7 +293,7 @@ export default function Profile() {
       {(awayTop.length > 0 || awayTopLast.length > 0) && (
         <div className="grid grid-cols-2 gap-3 mb-4">
           {awayTop.length > 0 && (
-            <div className="bg-stone-800 rounded-xl p-4">
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4">
               <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📍 Away {thisYear}</div>
               {awayTop.map(([loc, count]) => (
                 <div key={loc} className="flex justify-between py-1 border-b border-stone-700 last:border-0 text-sm">
@@ -303,7 +304,7 @@ export default function Profile() {
             </div>
           )}
           {awayTopLast.length > 0 && (
-            <div className="bg-stone-800 rounded-xl p-4">
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4">
               <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📍 Away {lastYear}</div>
               {awayTopLast.map(([loc, count]) => (
                 <div key={loc} className="flex justify-between py-1 border-b border-stone-700 last:border-0 text-sm">
@@ -317,7 +318,7 @@ export default function Profile() {
       )}
 
       {compTop.length > 0 && (
-        <div className="bg-stone-800 rounded-xl p-4 mb-4">
+        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 mb-4">
           <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">👥 Top companions ({thisYear})</div>
           {compTop.map(([name, count]) => (
             <div key={name} className="flex justify-between py-1 border-b border-stone-700 last:border-0">
@@ -328,7 +329,7 @@ export default function Profile() {
         </div>
       )}
 
-      <div className="bg-stone-800 rounded-xl p-4">
+      <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4">
         <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📋 Sauna log</div>
         <div className="flex gap-2 mb-4 flex-wrap">
           {allYears.map((year) => (
@@ -343,7 +344,7 @@ export default function Profile() {
             const b = getBeers(s);
             const w = getWaters(s);
             return (
-              <div key={i} className="bg-stone-700 rounded-xl p-3 flex justify-between items-center">
+              <div key={i} className="bg-white/10 rounded-xl p-3 flex justify-between items-center">
                 <div>
                   <div className="font-semibold text-sm">{s.date} · {s.location || (s.type === "home" ? "Home" : "Away")}</div>
                   <div className="text-stone-400 text-xs mt-1">
@@ -360,6 +361,7 @@ export default function Profile() {
         </div>
       </div>
       </>)}
+    </div>
     </div>
   );
 }
