@@ -115,7 +115,7 @@ export default function Profile() {
     <div className="min-h-screen bg-stone-900 text-white p-4 max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
-        <img src={profile.avatarUrl} className="w-16 h-16 rounded-full" alt="" />
+        <img src={profile.avatarUrl} className="w-16 h-16 rounded-full object-cover shrink-0" alt="" />
         <div>
           <h1 className="text-2xl font-bold">{profile.displayName}</h1>
           <div className="text-stone-400">@{profile.username}</div>
