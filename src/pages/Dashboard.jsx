@@ -323,7 +323,7 @@ export default function Dashboard() {
     <div className="min-h-screen text-white" style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
       <div className="max-w-2xl mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="h-8" />
+        <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="h-11" />
         <div className="flex items-center gap-3 text-sm text-stone-400">
           <Link to="/leaderboard" className="hover:text-white">Leaderboard</Link>
           <Link to="/friends" className="hover:text-white">Friends</Link>

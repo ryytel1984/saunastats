@@ -134,7 +134,7 @@ export default function Profile() {
           <div className="text-stone-400">@{profile.username}</div>
         </div>
         <div className="ml-auto flex flex-col items-end gap-1">
-          <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="h-6 opacity-60" />
+          <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="h-8 opacity-60" />
           <Link to="/leaderboard" className="text-stone-400 hover:text-white text-sm">Leaderboard</Link>
         </div>
       </div>
