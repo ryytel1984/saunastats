@@ -133,7 +133,10 @@ export default function Profile() {
           <h1 className="text-2xl font-bold">{profile.displayName}</h1>
           <div className="text-stone-400">@{profile.username}</div>
         </div>
-        <Link to="/leaderboard" className="ml-auto text-stone-400 hover:text-white text-sm">Leaderboard</Link>
+        <div className="ml-auto flex flex-col items-end gap-1">
+          <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="h-6 opacity-60" />
+          <Link to="/leaderboard" className="text-stone-400 hover:text-white text-sm">Leaderboard</Link>
+        </div>
       </div>
 
       {/* Main tabs */}

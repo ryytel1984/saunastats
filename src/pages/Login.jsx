@@ -42,15 +42,7 @@ export default function Login() {
       <div className="absolute inset-0 bg-black/60" />
 
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg w-full">
-        <h1
-          className="text-6xl font-bold tracking-tight mb-4"
-          style={{ fontFamily: "'Georgia', 'Times New Roman', serif", letterSpacing: "-0.02em" }}
-        >
-          SaunaStats
-        </h1>
-        <p className="text-stone-300 text-lg mb-10 leading-relaxed">
-          Track your sauna sessions.<br />Compete with friends.
-        </p>
+        <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="w-72 mb-8" />
         <button
           onClick={handleLogin}
           className="flex items-center justify-center gap-3 bg-white text-stone-900 font-semibold px-8 py-3 rounded-xl hover:bg-stone-100 transition w-full max-w-xs"

@@ -13,15 +13,7 @@ export default function Landing() {
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg w-full">
-        <h1
-          className="text-6xl font-bold tracking-tight mb-4"
-          style={{ fontFamily: "'Georgia', 'Times New Roman', serif", letterSpacing: "-0.02em" }}
-        >
-          SaunaStats
-        </h1>
-        <p className="text-stone-300 text-lg mb-10 leading-relaxed">
-          Track your sauna sessions.<br />Compete with friends.
-        </p>
+        <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="w-72 mb-8" />
         <a
           href="/login"
           className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-10 py-3 rounded-xl text-lg transition w-full max-w-xs text-center"
