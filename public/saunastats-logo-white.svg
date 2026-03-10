@@ -1,14 +1,57 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="940" height="290" viewBox="70 16 940 290" role="img" aria-label="SaunaStats">
-    <g transform="translate(70,16) scale(0.56)">
-      <path d="M88 368 C152 349, 212 343, 272 347 C336 351, 387 360, 424 372 C357 374, 293 382, 217 387 C167 391, 124 387, 88 368 Z" fill="#F4A300"/>
-      <rect x="125" y="285" width="56" height="62" rx="10" fill="#F4A300"/>
-      <rect x="194" y="255" width="56" height="92" rx="10" fill="#F4A300"/>
-      <rect x="263" y="217" width="56" height="130" rx="10" fill="#F4A300"/>
-      <rect x="332" y="180" width="56" height="167" rx="10" fill="#F4A300"/>
-      <path d="M159 171 C146 146, 147 130, 160 108 C171 90, 176 72, 168 49 C198 71, 205 110, 188 142 C181 155, 173 164, 159 171 Z" fill="#F4A300"/>
-      <path d="M241 146 C229 119, 230 99, 245 75 C257 56, 264 37, 257 14 C287 38, 294 80, 276 113 C269 126, 260 138, 241 146 Z" fill="#F4A300"/>
-      <path d="M324 171 C311 146, 312 130, 325 108 C336 90, 341 72, 333 49 C363 71, 370 110, 353 142 C346 155, 338 164, 324 171 Z" fill="#F4A300"/>
-    </g>
-    <text x="340" y="205" font-family="Arial, Helvetica, sans-serif" font-size="126" font-weight="700" fill="#ffffff">Sauna<tspan fill="#F4A300">Stats</tspan></text>
-    <text x="346" y="262" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="600" letter-spacing="3.5" fill="#ffffff" opacity="0.7">TRACK YOUR HEAT</text>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1700.79 558.45">
+  <!-- Generator: Adobe Illustrator 30.2.1, SVG Export Plug-In . SVG Version: 2.1.1 Build 1)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: none;
+        opacity: .25;
+        stroke: #fff;
+        stroke-width: 5px;
+      }
+
+      .st0, .st1, .st2, .st3, .st4 {
+        isolation: isolate;
+      }
+
+      .st1, .st3 {
+        font-size: 234.28px;
+      }
+
+      .st1, .st3, .st4 {
+        font-family: Arial-BoldMT, Arial;
+        font-weight: 700;
+      }
+
+      .st1, .st4 {
+        fill: #fff;
+      }
+
+      .st5, .st3 {
+        fill: #f2a31e;
+      }
+
+      .st4 {
+        font-size: 63.22px;
+        letter-spacing: .1em;
+        opacity: .7;
+      }
+    </style>
+  </defs>
+  <g>
+    <path class="st5" d="M8.41,400.07c66.64-19.78,129.12-26.03,191.59-21.87,66.64,4.17,119.74,13.54,158.27,26.03-69.76,2.08-136.4,10.41-215.54,15.62-52.06,4.17-96.84,0-134.32-19.78Z"/>
+    <rect class="st5" x="46.93" y="313.64" width="58.31" height="64.56" rx="5.6" ry="5.6"/>
+    <rect class="st5" x="118.78" y="282.41" width="58.31" height="95.8" rx="5.6" ry="5.6"/>
+    <rect class="st5" x="190.63" y="242.84" width="58.31" height="135.36" rx="5.6" ry="5.6"/>
+    <rect class="st5" x="262.48" y="204.31" width="58.31" height="173.89" rx="5.6" ry="5.6"/>
+    <path class="st5" d="M82.34,194.94c-13.54-26.03-12.5-42.69,1.04-65.6,11.45-18.74,16.66-37.49,8.33-61.43,31.24,22.91,38.53,63.52,20.83,96.84-7.29,13.54-15.62,22.91-30.2,30.2Z"/>
+    <path class="st5" d="M167.72,168.91c-12.5-28.11-11.45-48.94,4.17-73.93,12.5-19.78,19.78-39.57,12.5-63.52,31.24,24.99,38.53,68.72,19.78,103.08-7.29,13.54-16.66,26.03-36.44,34.36Z"/>
+    <path class="st5" d="M254.15,194.94c-13.54-26.03-12.5-42.69,1.04-65.6,11.45-18.74,16.66-37.49,8.33-61.43,31.24,22.91,38.53,63.52,20.83,96.84-7.29,13.54-15.62,22.91-30.2,30.2Z"/>
+  </g>
+  <g class="st2">
+    <text class="st1" transform="translate(418.81 368.31)"><tspan x="0" y="0">Sauna</tspan></text>
+    <text class="st3" transform="translate(1121.89 368.31)"><tspan x="0" y="0">Stats</tspan></text>
+  </g>
+  <text class="st4" transform="translate(429.97 492.89)"><tspan x="0" y="0">TRACK YOUR HEAT</tspan></text>
+  <line class="st0" x1="429.97" y1="518.92" x2="827.88" y2="518.92"/>
 </svg>
