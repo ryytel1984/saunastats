@@ -129,18 +129,29 @@ export default function Profile() {
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-stone-800 rounded-xl p-4">
-          <div className="text-stone-400 text-xs mb-2">🏠 Kodus vs Võõrsil</div>
-          <div className="flex justify-between">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-400">{homeSaunas.length}</div>
-              <div className="text-stone-500 text-xs">kodus</div>
+        <div className="bg-stone-800 rounded-xl p-4 col-span-2">
+          <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🏠 Kodus vs Võõrsil</div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-16 text-sm text-stone-300">Kodus</div>
+              <div className="flex-1 bg-stone-700 rounded-full h-3">
+                <div className="bg-orange-500 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(homeSaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
+              </div>
+              <div className="w-6 text-right font-bold text-orange-400 text-sm">{homeSaunas.length}</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-400">{awaySaunas.length}</div>
-              <div className="text-stone-500 text-xs">võõrsil</div>
+            <div className="flex items-center gap-3">
+              <div className="w-16 text-sm text-stone-300">Võõrsil</div>
+              <div className="flex-1 bg-stone-700 rounded-full h-3">
+                <div className="bg-sky-400 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(awaySaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
+              </div>
+              <div className="w-6 text-right font-bold text-sky-400 text-sm">{awaySaunas.length}</div>
             </div>
           </div>
+          {thisYearSaunas.length > 0 && (
+            <div className="text-stone-500 text-xs mt-3">
+              {Math.round((homeSaunas.length / thisYearSaunas.length) * 100)}% kodus · {Math.round((awaySaunas.length / thisYearSaunas.length) * 100)}% võõrsil
+            </div>
+          )}
         </div>
         <div className="bg-stone-800 rounded-xl p-4">
           <div className="text-stone-400 text-xs mb-2">🍺 Õlled ({thisYear})</div>
