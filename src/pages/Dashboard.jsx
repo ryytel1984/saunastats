@@ -322,12 +322,12 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-stone-900 text-white p-4 max-w-2xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">🧖 SaunaStats</h1>
-        <div className="flex gap-4 text-sm text-stone-400 items-center">
-          <Link to="/leaderboard" className="hover:text-white">Leaderboard</Link>
-          <Link to="/friends" className="hover:text-white">Friends</Link>
-          <Link to="/settings" className="hover:text-white">Profile</Link>
-          <button onClick={() => signOut(auth).then(() => navigate("/login"))} className="hover:text-white">Sign out</button>
+        <h1 className="text-2xl font-bold">SaunaStats</h1>
+        <div className="flex items-center gap-1 text-stone-400">
+          <Link to="/leaderboard" className="hover:text-white px-2 py-1 text-sm">🏆</Link>
+          <Link to="/friends" className="hover:text-white px-2 py-1 text-sm">👥</Link>
+          <Link to="/settings" className="hover:text-white px-2 py-1 text-sm">⚙️</Link>
+          <button onClick={() => signOut(auth).then(() => navigate("/login"))} className="hover:text-white px-2 py-1 text-sm">↪</button>
         </div>
       </div>
 
