@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { db } from "../firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { useParams, Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
@@ -23,6 +23,8 @@ export default function Profile() {
   const [saunas, setSaunas] = useState([]);
   const [notFound, setNotFound] = useState(false);
   const [logTab, setLogTab] = useState(null);
+  const [activeMainTab, setActiveMainTab] = useState("stats");
+  const [friendsList, setFriendsList] = useState([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -30,8 +32,19 @@ export default function Profile() {
       const match = snap.docs.find((d) => d.data().username === username);
       if (!match) { setNotFound(true); return; }
       setProfile({ uid: match.id, ...match.data() });
-      const saunaSnap = await getDocs(collection(db, "users", match.id, "saunas"));
+      const uid = match.id;
+
+      const saunaSnap = await getDocs(collection(db, "users", uid, "saunas"));
       setSaunas(saunaSnap.docs.map((d) => d.data()).sort((a, b) => b.date.localeCompare(a.date)));
+
+      const friendsSnap = await getDocs(collection(db, "users", uid, "friends"));
+      const accepted = friendsSnap.docs.filter(d => d.data().status === "accepted");
+      const list = await Promise.all(accepted.map(async (d) => {
+        const profSnap = await getDoc(doc(db, "users", d.id));
+        const prof = profSnap.exists() ? profSnap.data() : {};
+        return { uid: d.id, displayName: prof.displayName || d.id, username: prof.username || "", avatarUrl: prof.avatarUrl || "" };
+      }));
+      setFriendsList(list);
     };
     fetchProfile();
   }, [username]);
@@ -114,7 +127,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-stone-900 text-white p-4 max-w-2xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-4">
         <img src={profile.avatarUrl} className="w-16 h-16 rounded-full object-cover shrink-0" alt="" />
         <div>
           <h1 className="text-2xl font-bold">{profile.displayName}</h1>
@@ -123,7 +136,43 @@ export default function Profile() {
         <Link to="/leaderboard" className="ml-auto text-stone-400 hover:text-white text-sm">Leaderboard</Link>
       </div>
 
-      {/* Year comparison */}
+      {/* Main tabs */}
+      <div className="flex gap-2 mb-5">
+        <button onClick={() => setActiveMainTab("stats")}
+          className={`px-5 py-2 rounded-full text-sm font-medium transition ${activeMainTab === "stats" ? "bg-orange-500 text-white" : "bg-stone-800 text-stone-400 hover:bg-stone-700"}`}>
+          📊 Statistika
+        </button>
+        <button onClick={() => setActiveMainTab("friends")}
+          className={`px-5 py-2 rounded-full text-sm font-medium transition ${activeMainTab === "friends" ? "bg-orange-500 text-white" : "bg-stone-800 text-stone-400 hover:bg-stone-700"}`}>
+          👥 Sõbrad {friendsList.length > 0 && <span className="ml-1 opacity-70">({friendsList.length})</span>}
+        </button>
+      </div>
+
+      {/* Friends tab */}
+      {activeMainTab === "friends" && (
+        <div className="bg-stone-800 rounded-xl p-4">
+          {friendsList.length === 0 ? (
+            <div className="text-stone-500 text-sm text-center py-8">Sõbrad puuduvad</div>
+          ) : (
+            <div className="space-y-2">
+              {friendsList.map((f) => (
+                <Link key={f.uid} to={`/${f.username}`}
+                  className="flex items-center gap-3 bg-stone-700 hover:bg-stone-600 rounded-xl p-3 transition">
+                  <img src={f.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.displayName)}`}
+                    className="w-10 h-10 rounded-full object-cover shrink-0" alt="" />
+                  <div>
+                    <div className="font-semibold text-sm">{f.displayName}</div>
+                    <div className="text-stone-400 text-xs">@{f.username}</div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Stats tab */}
+      {activeMainTab === "stats" && (<>
       <div className="bg-stone-800 rounded-xl p-4 mb-4">
         <div className="text-stone-400 text-xs mb-1 uppercase tracking-wide">Aasta võrdlus</div>
         <div className="text-stone-500 text-xs mb-3">sama periood — tänase kuupäevani</div>
@@ -317,6 +366,7 @@ export default function Profile() {
           })}
         </div>
       </div>
+      </>)}
     </div>
   );
 }
