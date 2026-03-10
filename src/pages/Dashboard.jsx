@@ -5,7 +5,7 @@ import { signOut } from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-const MONTHS = ["Jan","Feb","Mar","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dets"];
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 const emptyForm = {
   date: new Date().toISOString().split("T")[0],
@@ -17,7 +17,6 @@ const emptyForm = {
   companions: "",
 };
 
-// Helper: read beers from both old and new format
 function getBeers(s) {
   if (s.beers !== undefined) return s.beers || 0;
   if (s.drink === "beer") return s.drinks || 0;
@@ -84,44 +83,42 @@ function FormFields({ f, setF, locationSuggestions, companionSuggestions, friend
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Parse current companions string into array
   const currentNames = f.companions ? f.companions.split(",").map(s => s.trim()).filter(Boolean) : [];
-
   const toggleFriend = (friend) => {
     const name = friend.displayName;
     const already = currentNames.includes(name);
     const updated = already ? currentNames.filter(n => n !== name) : [...currentNames, name];
     setF({ ...f, companions: updated.join(", ") });
   };
-
   const isSelected = (name) => currentNames.includes(name);
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-stone-400 text-xs">Kuupäev</label>
+          <label className="text-stone-400 text-xs">Date</label>
           <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })}
             className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
         </div>
         <div>
-          <label className="text-stone-400 text-xs">Tüüp</label>
+          <label className="text-stone-400 text-xs">Type</label>
           <select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}
             className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white">
-            <option value="home">🏠 Kodus</option>
-            <option value="away">✈️ Võõrsil</option>
+            <option value="home">🏠 Home</option>
+            <option value="away">✈️ Away</option>
           </select>
         </div>
       </div>
       {f.type === "away" && (
         <div>
-          <label className="text-stone-400 text-xs">Koht</label>
+          <label className="text-stone-400 text-xs">Location</label>
           <AutocompleteInput value={f.location} onChange={(val) => setF({ ...f, location: val })}
-            suggestions={locationSuggestions} placeholder="nt. Nõmme saun"
+            suggestions={locationSuggestions} placeholder="e.g. Nõmme saun"
             className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
         </div>
       )}
       <div>
-        <label className="text-stone-400 text-xs">Leilid 🌊</label>
+        <label className="text-stone-400 text-xs">Steams 🌊</label>
         <div className="flex gap-2 mt-2 flex-wrap">
           {[1,2,3,4,5,6,7,8,9,10].map((n) => (
             <button key={n} onClick={() => setF({ ...f, steams: n })}
@@ -131,17 +128,15 @@ function FormFields({ f, setF, locationSuggestions, companionSuggestions, friend
           ))}
         </div>
       </div>
-      <DrinkRow emoji="🍺" label="Õlut" value={f.beers} onChange={(n) => setF({ ...f, beers: n })} color="bg-orange-500 text-white" />
-      <DrinkRow emoji="💧" label="Vett" value={f.waters} onChange={(n) => setF({ ...f, waters: n })} color="bg-sky-500 text-white" />
+      <DrinkRow emoji="🍺" label="Beers" value={f.beers} onChange={(n) => setF({ ...f, beers: n })} color="bg-orange-500 text-white" />
+      <DrinkRow emoji="💧" label="Waters" value={f.waters} onChange={(n) => setF({ ...f, waters: n })} color="bg-sky-500 text-white" />
       <div>
-        <label className="text-stone-400 text-xs">Kaaslased</label>
-
-        {/* Friends dropdown */}
+        <label className="text-stone-400 text-xs">Companions</label>
         {friendsList && friendsList.length > 0 && (
           <div className="relative mt-1" ref={compRef}>
             <button type="button" onClick={() => setCompOpen(!compOpen)}
               className="w-full bg-stone-700 rounded-lg px-3 py-2 text-left text-sm text-stone-300 flex justify-between items-center">
-              <span>{currentNames.length > 0 ? currentNames.join(", ") : "Vali sõbrad..."}</span>
+              <span>{currentNames.length > 0 ? currentNames.join(", ") : "Select friends..."}</span>
               <span className="text-stone-500">{compOpen ? "▲" : "▼"}</span>
             </button>
             {compOpen && (
@@ -159,10 +154,8 @@ function FormFields({ f, setF, locationSuggestions, companionSuggestions, friend
             )}
           </div>
         )}
-
-        {/* Manual input */}
         <AutocompleteInput value={f.companions} onChange={(val) => setF({ ...f, companions: val })}
-          suggestions={companionSuggestions} placeholder="või sisesta käsitsi (komaga eraldatud)"
+          suggestions={companionSuggestions} placeholder="or type manually (comma separated)"
           className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-2 text-white text-sm" />
       </div>
     </div>
@@ -261,13 +254,12 @@ export default function Dashboard() {
 
   const handleDelete = async () => {
     if (!editSession) return;
-    if (!window.confirm("Kustuta see sessioon?")) return;
+    if (!window.confirm("Delete this session?")) return;
     await deleteDoc(doc(db, "users", user.uid, "saunas", editSession.id));
     setEditSession(null);
     setEditForm(null);
   };
 
-  // Stats
   const thisYear = new Date().getFullYear().toString();
   const lastYear = (new Date().getFullYear() - 1).toString();
   const todayMMDD = new Date().toISOString().slice(5, 10);
@@ -329,49 +321,46 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-stone-900 text-white p-4 max-w-2xl mx-auto">
-      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">🧖 SaunaStats</h1>
         <div className="flex gap-4 text-sm text-stone-400 items-center">
           <Link to="/leaderboard" className="hover:text-white">Leaderboard</Link>
-          <Link to="/friends" className="hover:text-white">Sõbrad</Link>
-          <Link to="/settings" className="hover:text-white">Profiil</Link>
+          <Link to="/friends" className="hover:text-white">Friends</Link>
+          <Link to="/settings" className="hover:text-white">Profile</Link>
           <button onClick={() => signOut(auth).then(() => navigate("/login"))} className="hover:text-white">Sign out</button>
         </div>
       </div>
 
-      {/* Year comparison */}
       <div className="bg-stone-800 rounded-xl p-4 mb-4">
-        <div className="text-stone-400 text-xs mb-1 uppercase tracking-wide">Aasta võrdlus</div>
-        <div className="text-stone-500 text-xs mb-3">sama periood — tänase kuupäevani</div>
+        <div className="text-stone-400 text-xs mb-1 uppercase tracking-wide">Year comparison</div>
+        <div className="text-stone-500 text-xs mb-3">same period — up to today</div>
         <div className="flex justify-around">
           <div className="text-center">
             <div className="text-3xl font-bold text-orange-400">{thisYearSaunas.length}</div>
             <div className="text-stone-400 text-sm">{thisYear}</div>
-            <div className="text-stone-500 text-xs">{tempoThisYear}/nädalas</div>
+            <div className="text-stone-500 text-xs">{tempoThisYear}/week</div>
           </div>
           <div className="text-stone-600 self-center text-xl">↔</div>
           <div className="text-center">
             <div className="text-3xl font-bold text-stone-400">{lastYearSamePeriod.length}</div>
             <div className="text-stone-400 text-sm">{lastYear}</div>
-            <div className="text-stone-500 text-xs">{tempoLastYear}/nädalas</div>
+            <div className="text-stone-500 text-xs">{tempoLastYear}/week</div>
           </div>
         </div>
       </div>
 
-      {/* Kodus vs Voorrsil */}
       <div className="bg-stone-800 rounded-xl p-4 mb-4">
-        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🏠 Kodus vs Võõrsil</div>
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🏠 Home vs Away</div>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-16 text-sm text-stone-300">Kodus</div>
+            <div className="w-12 text-sm text-stone-300">Home</div>
             <div className="flex-1 bg-stone-700 rounded-full h-3">
               <div className="bg-orange-500 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(homeSaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
             </div>
             <div className="w-6 text-right font-bold text-orange-400 text-sm">{homeSaunas.length}</div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-16 text-sm text-stone-300">Võõrsil</div>
+            <div className="w-12 text-sm text-stone-300">Away</div>
             <div className="flex-1 bg-stone-700 rounded-full h-3">
               <div className="bg-sky-400 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(awaySaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
             </div>
@@ -380,17 +369,16 @@ export default function Dashboard() {
         </div>
         {thisYearSaunas.length > 0 && (
           <div className="text-stone-500 text-xs mt-3">
-            {Math.round((homeSaunas.length / thisYearSaunas.length) * 100)}% kodus · {Math.round((awaySaunas.length / thisYearSaunas.length) * 100)}% võõrsil
+            {Math.round((homeSaunas.length / thisYearSaunas.length) * 100)}% home · {Math.round((awaySaunas.length / thisYearSaunas.length) * 100)}% away
           </div>
         )}
       </div>
 
-      {/* Joogid */}
       <div className="bg-stone-800 rounded-xl p-4 mb-4">
-        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🍺 Joogid ({thisYear})</div>
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🍺 Drinks ({thisYear})</div>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-16 text-sm text-stone-300">🍺 Õlut</div>
+            <div className="w-12 text-sm text-stone-300">🍺 Beer</div>
             <div className="flex-1 bg-stone-700 rounded-full h-3">
               <div className="bg-orange-500 h-3 rounded-full transition-all"
                 style={{ width: (totalBeers + totalWaters) > 0 ? `${(totalBeers / (totalBeers + totalWaters)) * 100}%` : "0%" }} />
@@ -398,7 +386,7 @@ export default function Dashboard() {
             <div className="w-6 text-right font-bold text-orange-400 text-sm">{totalBeers}</div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-16 text-sm text-stone-300">💧 Vett</div>
+            <div className="w-12 text-sm text-stone-300">💧 Water</div>
             <div className="flex-1 bg-stone-700 rounded-full h-3">
               <div className="bg-sky-400 h-3 rounded-full transition-all"
                 style={{ width: (totalBeers + totalWaters) > 0 ? `${(totalWaters / (totalBeers + totalWaters)) * 100}%` : "0%" }} />
@@ -408,47 +396,45 @@ export default function Dashboard() {
         </div>
         <div className="mt-3 pt-3 border-t border-stone-700 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-stone-400 text-xs">🍺 Õlu keskmine</span>
+            <span className="text-stone-400 text-xs">🍺 Beer avg</span>
             <div className="flex gap-4">
-              <span className="text-xs text-stone-500">keskim <span className="text-orange-400 font-bold">{avgBeers}</span></span>
-              <span className="text-xs text-stone-500">rekord <span className="text-orange-400 font-bold">{maxBeers}</span></span>
+              <span className="text-xs text-stone-500">avg <span className="text-orange-400 font-bold">{avgBeers}</span></span>
+              <span className="text-xs text-stone-500">record <span className="text-orange-400 font-bold">{maxBeers}</span></span>
             </div>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-stone-400 text-xs">💧 Vee keskmine</span>
+            <span className="text-stone-400 text-xs">💧 Water avg</span>
             <div className="flex gap-4">
-              <span className="text-xs text-stone-500">keskim <span className="text-sky-400 font-bold">{avgWaters}</span></span>
-              <span className="text-xs text-stone-500">rekord <span className="text-sky-400 font-bold">{maxWaters}</span></span>
+              <span className="text-xs text-stone-500">avg <span className="text-sky-400 font-bold">{avgWaters}</span></span>
+              <span className="text-xs text-stone-500">record <span className="text-sky-400 font-bold">{maxWaters}</span></span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tempo & Leilid */}
       <div className="bg-stone-800 rounded-xl p-4 mb-4">
-        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📅 Tempo & Leilid</div>
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📅 Pace & Steams</div>
         <div className="flex justify-around">
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-400">{tempoThisYear}</div>
-            <div className="text-stone-500 text-xs">sauna nädalas</div>
-            <div className="text-stone-600 text-xs">{thisYear} keskmine</div>
+            <div className="text-stone-500 text-xs">saunas/week</div>
+            <div className="text-stone-600 text-xs">{thisYear} avg</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-400">{avgSteams}</div>
-            <div className="text-stone-500 text-xs">leili keskmiselt</div>
-            <div className="text-stone-600 text-xs">sauna kohta</div>
+            <div className="text-stone-500 text-xs">steams avg</div>
+            <div className="text-stone-600 text-xs">per session</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-400">{longestGap || "—"}</div>
-            <div className="text-stone-500 text-xs">päeva pikim vahe</div>
-            <div className="text-stone-600 text-xs">saunade vahel</div>
+            <div className="text-stone-500 text-xs">day longest gap</div>
+            <div className="text-stone-600 text-xs">between saunas</div>
           </div>
         </div>
       </div>
 
-      {/* Monthly line chart */}
       <div className="bg-stone-800 rounded-xl p-4 mb-4">
-        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📊 Kuude võrdlus</div>
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📊 Monthly comparison</div>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
             <XAxis dataKey="month" tick={{ fill: "#78716c", fontSize: 11 }} />
@@ -461,12 +447,11 @@ export default function Dashboard() {
         </ResponsiveContainer>
       </div>
 
-      {/* Võõrsil TOP */}
       {(awayTop.length > 0 || awayTopLast.length > 0) && (
         <div className="grid grid-cols-2 gap-3 mb-4">
           {awayTop.length > 0 && (
             <div className="bg-stone-800 rounded-xl p-4">
-              <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📍 Võõrsil {thisYear}</div>
+              <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📍 Away {thisYear}</div>
               {awayTop.map(([loc, count]) => (
                 <div key={loc} className="flex justify-between py-1 border-b border-stone-700 last:border-0 text-sm">
                   <span className="truncate mr-2">{loc}</span>
@@ -477,7 +462,7 @@ export default function Dashboard() {
           )}
           {awayTopLast.length > 0 && (
             <div className="bg-stone-800 rounded-xl p-4">
-              <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📍 Võõrsil {lastYear}</div>
+              <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📍 Away {lastYear}</div>
               {awayTopLast.map(([loc, count]) => (
                 <div key={loc} className="flex justify-between py-1 border-b border-stone-700 last:border-0 text-sm">
                   <span className="truncate mr-2">{loc}</span>
@@ -489,10 +474,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Companions TOP */}
       {compTop.length > 0 && (
         <div className="bg-stone-800 rounded-xl p-4 mb-4">
-          <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">👥 Kaaslased TOP ({thisYear})</div>
+          <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">👥 Top companions ({thisYear})</div>
           {compTop.map(([name, count]) => (
             <div key={name} className="flex justify-between py-1 border-b border-stone-700 last:border-0">
               <span>{name}</span>
@@ -502,26 +486,23 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Add session button */}
       <button onClick={() => setShowForm(!showForm)}
         className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl mb-4 transition">
-        + Lisa saunasessioon
+        + Add sauna session
       </button>
 
-      {/* Add Form */}
       {showForm && (
         <div className="bg-stone-800 rounded-xl p-5 mb-4">
           <FormFields f={form} setF={setForm} locationSuggestions={locationSuggestions} companionSuggestions={companionSuggestions} friendsList={friendsList} />
           <button onClick={handleAdd}
             className="w-full bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition mt-4">
-            Salvesta 🧖
+            Save 🧖
           </button>
         </div>
       )}
 
-      {/* Session log with year tabs */}
       <div className="bg-stone-800 rounded-xl p-4">
-        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📋 Saunapäevik</div>
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📋 Sauna log</div>
         <div className="flex gap-2 mb-4 flex-wrap">
           {allYears.map((year) => (
             <button key={year} onClick={() => setLogTab(year)}
@@ -538,7 +519,7 @@ export default function Dashboard() {
               <div key={s.id} onClick={() => openEdit(s)}
                 className="bg-stone-700 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:bg-stone-600 transition">
                 <div>
-                  <div className="font-semibold text-sm">{s.date} · {s.location || (s.type === "home" ? "Kodus" : "Võõrsil")}</div>
+                  <div className="font-semibold text-sm">{s.date} · {s.location || (s.type === "home" ? "Home" : "Away")}</div>
                   <div className="text-stone-400 text-xs mt-1">
                     🌊 {s.steams}
                     {b > 0 && ` · 🍺 ${b}`}
@@ -553,13 +534,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Edit Modal */}
       {editSession && editForm && (
         <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 p-4"
           onClick={(e) => { if (e.target === e.currentTarget) { setEditSession(null); setEditForm(null); } }}>
           <div className="bg-stone-800 rounded-2xl p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold">Muuda sessiooni</h2>
+              <h2 className="text-lg font-bold">Edit session</h2>
               <button onClick={() => { setEditSession(null); setEditForm(null); }}
                 className="text-stone-400 hover:text-white text-xl">✕</button>
             </div>
@@ -567,11 +547,11 @@ export default function Dashboard() {
             <div className="flex gap-3 mt-4">
               <button onClick={handleDelete}
                 className="flex-1 bg-red-600 hover:bg-red-700 font-semibold py-3 rounded-xl transition text-sm">
-                🗑 Kustuta
+                🗑 Delete
               </button>
               <button onClick={handleSaveEdit}
                 className="flex-grow bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition">
-                Salvesta ✓
+                Save ✓
               </button>
             </div>
           </div>

@@ -4,7 +4,7 @@ import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { useParams, Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-const MONTHS = ["Jan","Feb","Mar","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dets"];
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 function getBeers(s) {
   if (s.beers !== undefined) return s.beers || 0;
@@ -126,7 +126,6 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-stone-900 text-white p-4 max-w-2xl mx-auto">
-      {/* Header */}
       <div className="flex items-center gap-4 mb-4">
         <img src={profile.avatarUrl} className="w-16 h-16 rounded-full object-cover shrink-0" alt="" />
         <div>
@@ -140,11 +139,11 @@ export default function Profile() {
       <div className="flex gap-2 mb-5">
         <button onClick={() => setActiveMainTab("stats")}
           className={`px-5 py-2 rounded-full text-sm font-medium transition ${activeMainTab === "stats" ? "bg-orange-500 text-white" : "bg-stone-800 text-stone-400 hover:bg-stone-700"}`}>
-          📊 Statistika
+          📊 Stats
         </button>
         <button onClick={() => setActiveMainTab("friends")}
           className={`px-5 py-2 rounded-full text-sm font-medium transition ${activeMainTab === "friends" ? "bg-orange-500 text-white" : "bg-stone-800 text-stone-400 hover:bg-stone-700"}`}>
-          👥 Sõbrad {friendsList.length > 0 && <span className="ml-1 opacity-70">({friendsList.length})</span>}
+          👥 Friends {friendsList.length > 0 && <span className="ml-1 opacity-70">({friendsList.length})</span>}
         </button>
       </div>
 
@@ -152,7 +151,7 @@ export default function Profile() {
       {activeMainTab === "friends" && (
         <div className="bg-stone-800 rounded-xl p-4">
           {friendsList.length === 0 ? (
-            <div className="text-stone-500 text-sm text-center py-8">Sõbrad puuduvad</div>
+            <div className="text-stone-500 text-sm text-center py-8">No friends yet</div>
           ) : (
             <div className="space-y-2">
               {friendsList.map((f) => (
@@ -173,37 +172,37 @@ export default function Profile() {
 
       {/* Stats tab */}
       {activeMainTab === "stats" && (<>
+
       <div className="bg-stone-800 rounded-xl p-4 mb-4">
-        <div className="text-stone-400 text-xs mb-1 uppercase tracking-wide">Aasta võrdlus</div>
-        <div className="text-stone-500 text-xs mb-3">sama periood — tänase kuupäevani</div>
+        <div className="text-stone-400 text-xs mb-1 uppercase tracking-wide">Year comparison</div>
+        <div className="text-stone-500 text-xs mb-3">same period — up to today</div>
         <div className="flex justify-around">
           <div className="text-center">
             <div className="text-3xl font-bold text-orange-400">{thisYearSaunas.length}</div>
             <div className="text-stone-400 text-sm">{thisYear}</div>
-            <div className="text-stone-500 text-xs">{tempoThisYear}/nädalas</div>
+            <div className="text-stone-500 text-xs">{tempoThisYear}/week</div>
           </div>
           <div className="text-stone-600 self-center text-xl">↔</div>
           <div className="text-center">
             <div className="text-3xl font-bold text-stone-400">{lastYearSamePeriod.length}</div>
             <div className="text-stone-400 text-sm">{lastYear}</div>
-            <div className="text-stone-500 text-xs">{tempoLastYear}/nädalas</div>
+            <div className="text-stone-500 text-xs">{tempoLastYear}/week</div>
           </div>
         </div>
       </div>
 
-      {/* Kodus vs Voorrsil */}
       <div className="bg-stone-800 rounded-xl p-4 mb-4">
-        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🏠 Kodus vs Võõrsil</div>
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🏠 Home vs Away</div>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-16 text-sm text-stone-300">Kodus</div>
+            <div className="w-12 text-sm text-stone-300">Home</div>
             <div className="flex-1 bg-stone-700 rounded-full h-3">
               <div className="bg-orange-500 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(homeSaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
             </div>
             <div className="w-6 text-right font-bold text-orange-400 text-sm">{homeSaunas.length}</div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-16 text-sm text-stone-300">Võõrsil</div>
+            <div className="w-12 text-sm text-stone-300">Away</div>
             <div className="flex-1 bg-stone-700 rounded-full h-3">
               <div className="bg-sky-400 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(awaySaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
             </div>
@@ -212,17 +211,16 @@ export default function Profile() {
         </div>
         {thisYearSaunas.length > 0 && (
           <div className="text-stone-500 text-xs mt-3">
-            {Math.round((homeSaunas.length / thisYearSaunas.length) * 100)}% kodus · {Math.round((awaySaunas.length / thisYearSaunas.length) * 100)}% võõrsil
+            {Math.round((homeSaunas.length / thisYearSaunas.length) * 100)}% home · {Math.round((awaySaunas.length / thisYearSaunas.length) * 100)}% away
           </div>
         )}
       </div>
 
-      {/* Joogid */}
       <div className="bg-stone-800 rounded-xl p-4 mb-4">
-        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🍺 Joogid ({thisYear})</div>
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🍺 Drinks ({thisYear})</div>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-16 text-sm text-stone-300">🍺 Õlut</div>
+            <div className="w-12 text-sm text-stone-300">🍺 Beer</div>
             <div className="flex-1 bg-stone-700 rounded-full h-3">
               <div className="bg-orange-500 h-3 rounded-full transition-all"
                 style={{ width: (totalBeers + totalWaters) > 0 ? `${(totalBeers / (totalBeers + totalWaters)) * 100}%` : "0%" }} />
@@ -230,7 +228,7 @@ export default function Profile() {
             <div className="w-6 text-right font-bold text-orange-400 text-sm">{totalBeers}</div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-16 text-sm text-stone-300">💧 Vett</div>
+            <div className="w-12 text-sm text-stone-300">💧 Water</div>
             <div className="flex-1 bg-stone-700 rounded-full h-3">
               <div className="bg-sky-400 h-3 rounded-full transition-all"
                 style={{ width: (totalBeers + totalWaters) > 0 ? `${(totalWaters / (totalBeers + totalWaters)) * 100}%` : "0%" }} />
@@ -240,47 +238,45 @@ export default function Profile() {
         </div>
         <div className="mt-3 pt-3 border-t border-stone-700 space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-stone-400 text-xs">🍺 Õlu keskmine</span>
+            <span className="text-stone-400 text-xs">🍺 Beer avg</span>
             <div className="flex gap-4">
-              <span className="text-xs text-stone-500">keskim <span className="text-orange-400 font-bold">{avgBeers}</span></span>
-              <span className="text-xs text-stone-500">rekord <span className="text-orange-400 font-bold">{maxBeers}</span></span>
+              <span className="text-xs text-stone-500">avg <span className="text-orange-400 font-bold">{avgBeers}</span></span>
+              <span className="text-xs text-stone-500">record <span className="text-orange-400 font-bold">{maxBeers}</span></span>
             </div>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-stone-400 text-xs">💧 Vee keskmine</span>
+            <span className="text-stone-400 text-xs">💧 Water avg</span>
             <div className="flex gap-4">
-              <span className="text-xs text-stone-500">keskim <span className="text-sky-400 font-bold">{avgWaters}</span></span>
-              <span className="text-xs text-stone-500">rekord <span className="text-sky-400 font-bold">{maxWaters}</span></span>
+              <span className="text-xs text-stone-500">avg <span className="text-sky-400 font-bold">{avgWaters}</span></span>
+              <span className="text-xs text-stone-500">record <span className="text-sky-400 font-bold">{maxWaters}</span></span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tempo & Leilid */}
       <div className="bg-stone-800 rounded-xl p-4 mb-4">
-        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📅 Tempo & Leilid</div>
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📅 Pace & Steams</div>
         <div className="flex justify-around">
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-400">{tempoThisYear}</div>
-            <div className="text-stone-500 text-xs">sauna nädalas</div>
-            <div className="text-stone-600 text-xs">{thisYear} keskmine</div>
+            <div className="text-stone-500 text-xs">saunas/week</div>
+            <div className="text-stone-600 text-xs">{thisYear} avg</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-400">{avgSteams}</div>
-            <div className="text-stone-500 text-xs">leili keskmiselt</div>
-            <div className="text-stone-600 text-xs">sauna kohta</div>
+            <div className="text-stone-500 text-xs">steams avg</div>
+            <div className="text-stone-600 text-xs">per session</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-400">{longestGap || "—"}</div>
-            <div className="text-stone-500 text-xs">päeva pikim vahe</div>
-            <div className="text-stone-600 text-xs">saunade vahel</div>
+            <div className="text-stone-500 text-xs">day longest gap</div>
+            <div className="text-stone-600 text-xs">between saunas</div>
           </div>
         </div>
       </div>
 
-      {/* Monthly line chart */}
       <div className="bg-stone-800 rounded-xl p-4 mb-4">
-        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📊 Kuude võrdlus</div>
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📊 Monthly comparison</div>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
             <XAxis dataKey="month" tick={{ fill: "#78716c", fontSize: 11 }} />
@@ -293,12 +289,11 @@ export default function Profile() {
         </ResponsiveContainer>
       </div>
 
-      {/* Võõrsil TOP */}
       {(awayTop.length > 0 || awayTopLast.length > 0) && (
         <div className="grid grid-cols-2 gap-3 mb-4">
           {awayTop.length > 0 && (
             <div className="bg-stone-800 rounded-xl p-4">
-              <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📍 Võõrsil {thisYear}</div>
+              <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📍 Away {thisYear}</div>
               {awayTop.map(([loc, count]) => (
                 <div key={loc} className="flex justify-between py-1 border-b border-stone-700 last:border-0 text-sm">
                   <span className="truncate mr-2">{loc}</span>
@@ -309,7 +304,7 @@ export default function Profile() {
           )}
           {awayTopLast.length > 0 && (
             <div className="bg-stone-800 rounded-xl p-4">
-              <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📍 Võõrsil {lastYear}</div>
+              <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📍 Away {lastYear}</div>
               {awayTopLast.map(([loc, count]) => (
                 <div key={loc} className="flex justify-between py-1 border-b border-stone-700 last:border-0 text-sm">
                   <span className="truncate mr-2">{loc}</span>
@@ -321,10 +316,9 @@ export default function Profile() {
         </div>
       )}
 
-      {/* Companions TOP */}
       {compTop.length > 0 && (
         <div className="bg-stone-800 rounded-xl p-4 mb-4">
-          <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">👥 Kaaslased TOP ({thisYear})</div>
+          <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">👥 Top companions ({thisYear})</div>
           {compTop.map(([name, count]) => (
             <div key={name} className="flex justify-between py-1 border-b border-stone-700 last:border-0">
               <span>{name}</span>
@@ -334,9 +328,8 @@ export default function Profile() {
         </div>
       )}
 
-      {/* Session log with year tabs */}
       <div className="bg-stone-800 rounded-xl p-4">
-        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📋 Saunapäevik</div>
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📋 Sauna log</div>
         <div className="flex gap-2 mb-4 flex-wrap">
           {allYears.map((year) => (
             <button key={year} onClick={() => setLogTab(year)}
@@ -352,7 +345,7 @@ export default function Profile() {
             return (
               <div key={i} className="bg-stone-700 rounded-xl p-3 flex justify-between items-center">
                 <div>
-                  <div className="font-semibold text-sm">{s.date} · {s.location || (s.type === "home" ? "Kodus" : "Võõrsil")}</div>
+                  <div className="font-semibold text-sm">{s.date} · {s.location || (s.type === "home" ? "Home" : "Away")}</div>
                   <div className="text-stone-400 text-xs mt-1">
                     🌊 {s.steams}
                     {b > 0 && ` · 🍺 ${b}`}
