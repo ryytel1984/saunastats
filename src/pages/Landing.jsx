@@ -13,7 +13,7 @@ export default function Landing() {
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg w-full">
-        <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="w-96 mb-8" />
+        <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="w-96 mx-auto mb-8" />
         <a
           href="/login"
           className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-10 py-3 rounded-xl text-lg transition w-full max-w-xs text-center"

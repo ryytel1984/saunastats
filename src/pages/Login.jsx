@@ -42,7 +42,7 @@ export default function Login() {
       <div className="absolute inset-0 bg-black/60" />
 
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg w-full">
-        <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="w-96 mb-8" />
+        <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="w-96 mx-auto mb-8" />
         <button
           onClick={handleLogin}
           className="flex items-center justify-center gap-3 bg-white text-stone-900 font-semibold px-8 py-3 rounded-xl hover:bg-stone-100 transition w-full max-w-xs"
