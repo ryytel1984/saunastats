@@ -1,14 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { auth, db } from "../firebase";
 import { collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
+import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const DRINK_OPTIONS = [
   { value: "beer", label: "🍺 Beer" },
   { value: "water", label: "💧 Water/other" },
   { value: "none", label: "🚫 Nothing" },
 ];
+
+const MONTHS = ["Jan","Feb","Mar","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dets"];
 
 const emptyForm = {
   date: new Date().toISOString().split("T")[0],
@@ -20,7 +23,45 @@ const emptyForm = {
   companions: "",
 };
 
-function FormFields({ f, setF }) {
+function AutocompleteInput({ value, onChange, suggestions, placeholder, className }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  const filtered = suggestions
+    .filter((s) => s.toLowerCase().includes(value.toLowerCase()) && s.toLowerCase() !== value.toLowerCase())
+    .slice(0, 5);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <input
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        className={className}
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-10 w-full bg-stone-700 rounded-lg mt-1 shadow-lg overflow-hidden">
+          {filtered.map((s) => (
+            <div key={s} onMouseDown={() => { onChange(s); setOpen(false); }}
+              className="px-3 py-2 hover:bg-stone-600 cursor-pointer text-sm text-white">
+              {s}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FormFields({ f, setF, locationSuggestions, companionSuggestions }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -42,9 +83,13 @@ function FormFields({ f, setF }) {
       {f.type === "away" && (
         <div>
           <label className="text-stone-400 text-xs">Koht</label>
-          <input type="text" placeholder="nt. Nõmme saun" value={f.location}
-            onChange={(e) => setF({ ...f, location: e.target.value })}
-            className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
+          <AutocompleteInput
+            value={f.location}
+            onChange={(val) => setF({ ...f, location: val })}
+            suggestions={locationSuggestions}
+            placeholder="nt. Nõmme saun"
+            className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white"
+          />
         </div>
       )}
 
@@ -88,9 +133,13 @@ function FormFields({ f, setF }) {
 
       <div>
         <label className="text-stone-400 text-xs">Kaaslased (komaga eraldatud)</label>
-        <input type="text" placeholder="nt. Jüri, Mart" value={f.companions}
-          onChange={(e) => setF({ ...f, companions: e.target.value })}
-          className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
+        <AutocompleteInput
+          value={f.companions}
+          onChange={(val) => setF({ ...f, companions: val })}
+          suggestions={companionSuggestions}
+          placeholder="nt. Jüri, Mart"
+          className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white"
+        />
       </div>
     </div>
   );
@@ -101,8 +150,9 @@ export default function Dashboard() {
   const [saunas, setSaunas] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [showForm, setShowForm] = useState(false);
-  const [editSession, setEditSession] = useState(null); // session being edited
+  const [editSession, setEditSession] = useState(null);
   const [editForm, setEditForm] = useState(null);
+  const [logTab, setLogTab] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -121,6 +171,9 @@ export default function Dashboard() {
     });
     return unsub;
   }, [user]);
+
+  const locationSuggestions = [...new Set(saunas.filter(s => s.location).map(s => s.location))];
+  const companionSuggestions = [...new Set(saunas.flatMap(s => s.companions || []))];
 
   const handleAdd = async () => {
     if (!form.date) return;
@@ -177,35 +230,58 @@ export default function Dashboard() {
   // Stats
   const thisYear = new Date().getFullYear().toString();
   const lastYear = (new Date().getFullYear() - 1).toString();
+  const todayMMDD = new Date().toISOString().slice(5, 10);
+
   const thisYearSaunas = saunas.filter((s) => s.date?.startsWith(thisYear));
   const lastYearSaunas = saunas.filter((s) => s.date?.startsWith(lastYear));
+  const lastYearSamePeriod = lastYearSaunas.filter((s) => s.date?.slice(5) <= todayMMDD);
+
   const homeSaunas = thisYearSaunas.filter((s) => s.type === "home");
   const awaySaunas = thisYearSaunas.filter((s) => s.type === "away");
-  const totalSteams = thisYearSaunas.reduce((a, s) => a + (s.steams || 0), 0);
+  const lastYearAwaySaunas = lastYearSaunas.filter((s) => s.type === "away");
+
   const totalBeers = thisYearSaunas.filter((s) => s.drink === "beer").reduce((a, s) => a + (s.drinks || 0), 0);
-  const avgSteams = thisYearSaunas.length ? (totalSteams / thisYearSaunas.length).toFixed(1) : 0;
+  const totalSteams = thisYearSaunas.reduce((a, s) => a + (s.steams || 0), 0);
+  const avgSteams = thisYearSaunas.length ? (totalSteams / thisYearSaunas.length).toFixed(1) : "—";
   const avgBeers = thisYearSaunas.filter((s) => s.drink === "beer").length
-    ? (totalBeers / thisYearSaunas.filter((s) => s.drink === "beer").length).toFixed(1) : 0;
+    ? (totalBeers / thisYearSaunas.filter((s) => s.drink === "beer").length).toFixed(1) : "—";
   const maxBeers = Math.max(0, ...thisYearSaunas.map((s) => s.drinks || 0));
+
+  const weeksSinceJan1 = Math.max(1, Math.ceil((new Date() - new Date(thisYear + "-01-01")) / (7 * 24 * 60 * 60 * 1000)));
+  const tempoThisYear = (thisYearSaunas.length / weeksSinceJan1).toFixed(1);
+  const tempoLastYear = lastYearSaunas.length ? (lastYearSaunas.length / 52).toFixed(1) : "—";
+
+  const sortedThis = [...thisYearSaunas].sort((a, b) => a.date.localeCompare(b.date));
+  let longestGap = 0;
+  for (let i = 1; i < sortedThis.length; i++) {
+    const diff = (new Date(sortedThis[i].date) - new Date(sortedThis[i - 1].date)) / (1000 * 60 * 60 * 24);
+    if (diff > longestGap) longestGap = diff;
+  }
 
   const awayCount = {};
   awaySaunas.forEach((s) => { if (s.location) awayCount[s.location] = (awayCount[s.location] || 0) + 1; });
   const awayTop = Object.entries(awayCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
+  const awayCountLast = {};
+  lastYearAwaySaunas.forEach((s) => { if (s.location) awayCountLast[s.location] = (awayCountLast[s.location] || 0) + 1; });
+  const awayTopLast = Object.entries(awayCountLast).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
   const compCount = {};
   thisYearSaunas.forEach((s) => (s.companions || []).forEach((c) => { compCount[c] = (compCount[c] || 0) + 1; }));
   const compTop = Object.entries(compCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-  const weeksSinceJan1 = Math.ceil((new Date() - new Date(thisYear + "-01-01")) / (7 * 24 * 60 * 60 * 1000));
-  const tempoThisYear = (thisYearSaunas.length / weeksSinceJan1).toFixed(1);
-  const tempoLastYear = lastYearSaunas.length ? (lastYearSaunas.length / 52).toFixed(1) : "—";
+  const chartData = MONTHS.map((month, i) => {
+    const m = String(i + 1).padStart(2, "0");
+    return {
+      month,
+      [thisYear]: thisYearSaunas.filter((s) => s.date?.startsWith(`${thisYear}-${m}`)).length,
+      [lastYear]: lastYearSaunas.filter((s) => s.date?.startsWith(`${lastYear}-${m}`)).length,
+    };
+  });
 
-  const sorted = [...thisYearSaunas].sort((a, b) => a.date.localeCompare(b.date));
-  let longestGap = 0;
-  for (let i = 1; i < sorted.length; i++) {
-    const diff = (new Date(sorted[i].date) - new Date(sorted[i - 1].date)) / (1000 * 60 * 60 * 24);
-    if (diff > longestGap) longestGap = diff;
-  }
+  const allYears = [...new Set(saunas.map((s) => s.date?.slice(0, 4)).filter(Boolean))].sort((a, b) => b - a);
+  const activeTab = logTab || allYears[0] || thisYear;
+  const tabSaunas = saunas.filter((s) => s.date?.startsWith(activeTab));
 
   return (
     <div className="min-h-screen bg-stone-900 text-white p-4 max-w-2xl mx-auto">
@@ -218,9 +294,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Year comparison */}
+      {/* Year comparison — same period */}
       <div className="bg-stone-800 rounded-xl p-4 mb-4">
-        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">Tempo võrdlus</div>
+        <div className="text-stone-400 text-xs mb-1 uppercase tracking-wide">Aasta võrdlus</div>
+        <div className="text-stone-500 text-xs mb-3">sama periood — tänase kuupäevani</div>
         <div className="flex justify-around">
           <div className="text-center">
             <div className="text-3xl font-bold text-orange-400">{thisYearSaunas.length}</div>
@@ -229,7 +306,7 @@ export default function Dashboard() {
           </div>
           <div className="text-stone-600 self-center text-xl">↔</div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-stone-400">{lastYearSaunas.length}</div>
+            <div className="text-3xl font-bold text-stone-400">{lastYearSamePeriod.length}</div>
             <div className="text-stone-400 text-sm">{lastYear}</div>
             <div className="text-stone-500 text-xs">{tempoLastYear}/nädalas</div>
           </div>
@@ -252,19 +329,6 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="bg-stone-800 rounded-xl p-4">
-          <div className="text-stone-400 text-xs mb-2">🌊 Leilid</div>
-          <div className="flex justify-between">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-400">{totalSteams}</div>
-              <div className="text-stone-500 text-xs">kokku</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-400">{avgSteams}</div>
-              <div className="text-stone-500 text-xs">keskmine</div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-stone-800 rounded-xl p-4">
           <div className="text-stone-400 text-xs mb-2">🍺 Õlled ({thisYear})</div>
           <div className="flex justify-between">
             <div className="text-center">
@@ -276,33 +340,79 @@ export default function Dashboard() {
               <div className="text-stone-500 text-xs">keskmine</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-400">{maxBeers}★</div>
+              <div className="text-2xl font-bold text-orange-400">{maxBeers}</div>
               <div className="text-stone-500 text-xs">rekord</div>
             </div>
           </div>
         </div>
-        <div className="bg-stone-800 rounded-xl p-4">
-          <div className="text-stone-400 text-xs mb-2">📅 Tempo</div>
+      </div>
+
+      {/* Tempo & Leilid */}
+      <div className="bg-stone-800 rounded-xl p-4 mb-4">
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📅 Tempo & Leilid</div>
+        <div className="flex justify-around">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-orange-400">{tempoThisYear}</div>
+            <div className="text-stone-500 text-xs">sauna nädalas</div>
+            <div className="text-stone-600 text-xs">{thisYear} keskmine</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-orange-400">{avgSteams}</div>
+            <div className="text-stone-500 text-xs">leili keskmiselt</div>
+            <div className="text-stone-600 text-xs">sauna kohta</div>
+          </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-400">{longestGap || "—"}</div>
-            <div className="text-stone-500 text-xs">pikim vahe (päeva)</div>
+            <div className="text-stone-500 text-xs">päeva pikim vahe</div>
+            <div className="text-stone-600 text-xs">saunade vahel</div>
           </div>
         </div>
       </div>
 
-      {/* TOP lists */}
-      {awayTop.length > 0 && (
-        <div className="bg-stone-800 rounded-xl p-4 mb-4">
-          <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📍 Võõrsil TOP ({thisYear})</div>
-          {awayTop.map(([loc, count]) => (
-            <div key={loc} className="flex justify-between py-1 border-b border-stone-700 last:border-0">
-              <span>{loc}</span>
-              <span className="text-orange-400">{count}x</span>
+      {/* Monthly line chart */}
+      <div className="bg-stone-800 rounded-xl p-4 mb-4">
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📊 Kuude võrdlus</div>
+        <ResponsiveContainer width="100%" height={180}>
+          <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+            <XAxis dataKey="month" tick={{ fill: "#78716c", fontSize: 11 }} />
+            <YAxis tick={{ fill: "#78716c", fontSize: 11 }} allowDecimals={false} />
+            <Tooltip contentStyle={{ background: "#1c1917", border: "none", borderRadius: 8, color: "#fff" }} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Line type="monotone" dataKey={thisYear} stroke="#f97316" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey={lastYear} stroke="#57534e" strokeWidth={2} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Võõrsil TOP — both years side by side */}
+      {(awayTop.length > 0 || awayTopLast.length > 0) && (
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          {awayTop.length > 0 && (
+            <div className="bg-stone-800 rounded-xl p-4">
+              <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📍 Võõrsil {thisYear}</div>
+              {awayTop.map(([loc, count]) => (
+                <div key={loc} className="flex justify-between py-1 border-b border-stone-700 last:border-0 text-sm">
+                  <span className="truncate mr-2">{loc}</span>
+                  <span className="text-orange-400 shrink-0">{count}x</span>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+          {awayTopLast.length > 0 && (
+            <div className="bg-stone-800 rounded-xl p-4">
+              <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📍 Võõrsil {lastYear}</div>
+              {awayTopLast.map(([loc, count]) => (
+                <div key={loc} className="flex justify-between py-1 border-b border-stone-700 last:border-0 text-sm">
+                  <span className="truncate mr-2">{loc}</span>
+                  <span className="text-orange-400 shrink-0">{count}x</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
+      {/* Companions TOP */}
       {compTop.length > 0 && (
         <div className="bg-stone-800 rounded-xl p-4 mb-4">
           <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">👥 Kaaslased TOP ({thisYear})</div>
@@ -326,7 +436,7 @@ export default function Dashboard() {
       {/* Add Form */}
       {showForm && (
         <div className="bg-stone-800 rounded-xl p-5 mb-4">
-          <FormFields f={form} setF={setForm} />
+          <FormFields f={form} setF={setForm} locationSuggestions={locationSuggestions} companionSuggestions={companionSuggestions} />
           <button onClick={handleAdd}
             className="w-full bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition mt-4">
             Salvesta 🧖
@@ -334,21 +444,32 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Session list */}
-      <div className="space-y-2">
-        {saunas.map((s) => (
-          <div key={s.id} onClick={() => openEdit(s)}
-            className="bg-stone-800 rounded-xl p-4 flex justify-between items-center cursor-pointer hover:bg-stone-700 transition">
-            <div>
-              <div className="font-semibold">{s.date} · {s.location || (s.type === "home" ? "Kodus" : "Võõrsil")}</div>
-              <div className="text-stone-400 text-sm mt-1">
-                🌊 {s.steams} leili · {s.drink === "beer" ? "🍺" : s.drink === "water" ? "💧" : "🚫"} {s.drink !== "none" ? s.drinks : ""}
-                {s.companions?.length > 0 && ` · 👥 ${s.companions.join(", ")}`}
+      {/* Session log with year tabs */}
+      <div className="bg-stone-800 rounded-xl p-4">
+        <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📋 Saunapäevik</div>
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {allYears.map((year) => (
+            <button key={year} onClick={() => setLogTab(year)}
+              className={`px-4 py-1 rounded-full text-sm font-medium transition ${activeTab === year ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-400 hover:bg-stone-600"}`}>
+              {year}
+            </button>
+          ))}
+        </div>
+        <div className="space-y-2">
+          {tabSaunas.map((s) => (
+            <div key={s.id} onClick={() => openEdit(s)}
+              className="bg-stone-700 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:bg-stone-600 transition">
+              <div>
+                <div className="font-semibold text-sm">{s.date} · {s.location || (s.type === "home" ? "Kodus" : "Võõrsil")}</div>
+                <div className="text-stone-400 text-xs mt-1">
+                  🌊 {s.steams} leili · {s.drink === "beer" ? "🍺" : s.drink === "water" ? "💧" : "🚫"} {s.drink !== "none" ? s.drinks : ""}
+                  {s.companions?.length > 0 && ` · 👥 ${s.companions.join(", ")}`}
+                </div>
               </div>
+              <div className="text-stone-500 text-sm ml-2">{s.type === "home" ? "🏠" : "✈️"}</div>
             </div>
-            <div className="text-stone-500 text-sm">{s.type === "home" ? "🏠" : "✈️"}</div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Edit Modal */}
@@ -361,16 +482,14 @@ export default function Dashboard() {
               <button onClick={() => { setEditSession(null); setEditForm(null); }}
                 className="text-stone-400 hover:text-white text-xl">✕</button>
             </div>
-
-            <FormFields f={editForm} setF={setEditForm} />
-
+            <FormFields f={editForm} setF={setEditForm} locationSuggestions={locationSuggestions} companionSuggestions={companionSuggestions} />
             <div className="flex gap-3 mt-4">
               <button onClick={handleDelete}
                 className="flex-1 bg-red-600 hover:bg-red-700 font-semibold py-3 rounded-xl transition text-sm">
                 🗑 Kustuta
               </button>
               <button onClick={handleSaveEdit}
-                className="flex-2 flex-grow bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition">
+                className="flex-grow bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition">
                 Salvesta ✓
               </button>
             </div>
