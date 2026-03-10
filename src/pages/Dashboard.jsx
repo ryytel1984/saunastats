@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { auth, db } from "../firebase";
-import { collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, getDoc, query, orderBy, onSnapshot } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -74,7 +74,27 @@ function AutocompleteInput({ value, onChange, suggestions, placeholder, classNam
   );
 }
 
-function FormFields({ f, setF, locationSuggestions, companionSuggestions }) {
+function FormFields({ f, setF, locationSuggestions, companionSuggestions, friendsList }) {
+  const [compOpen, setCompOpen] = useState(false);
+  const compRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (compRef.current && !compRef.current.contains(e.target)) setCompOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Parse current companions string into array
+  const currentNames = f.companions ? f.companions.split(",").map(s => s.trim()).filter(Boolean) : [];
+
+  const toggleFriend = (friend) => {
+    const name = friend.displayName;
+    const already = currentNames.includes(name);
+    const updated = already ? currentNames.filter(n => n !== name) : [...currentNames, name];
+    setF({ ...f, companions: updated.join(", ") });
+  };
+
+  const isSelected = (name) => currentNames.includes(name);
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -114,10 +134,36 @@ function FormFields({ f, setF, locationSuggestions, companionSuggestions }) {
       <DrinkRow emoji="🍺" label="Õlut" value={f.beers} onChange={(n) => setF({ ...f, beers: n })} color="bg-orange-500 text-white" />
       <DrinkRow emoji="💧" label="Vett" value={f.waters} onChange={(n) => setF({ ...f, waters: n })} color="bg-sky-500 text-white" />
       <div>
-        <label className="text-stone-400 text-xs">Kaaslased (komaga eraldatud)</label>
+        <label className="text-stone-400 text-xs">Kaaslased</label>
+
+        {/* Friends dropdown */}
+        {friendsList && friendsList.length > 0 && (
+          <div className="relative mt-1" ref={compRef}>
+            <button type="button" onClick={() => setCompOpen(!compOpen)}
+              className="w-full bg-stone-700 rounded-lg px-3 py-2 text-left text-sm text-stone-300 flex justify-between items-center">
+              <span>{currentNames.length > 0 ? currentNames.join(", ") : "Vali sõbrad..."}</span>
+              <span className="text-stone-500">{compOpen ? "▲" : "▼"}</span>
+            </button>
+            {compOpen && (
+              <div className="absolute z-10 w-full bg-stone-700 rounded-lg mt-1 shadow-lg overflow-hidden">
+                {friendsList.map((friend) => (
+                  <div key={friend.uid} onMouseDown={() => toggleFriend(friend)}
+                    className={`px-3 py-2 cursor-pointer text-sm flex items-center gap-2 hover:bg-stone-600 ${isSelected(friend.displayName) ? "bg-stone-600" : ""}`}>
+                    <img src={friend.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.displayName)}`}
+                      className="w-6 h-6 rounded-full object-cover" alt="" />
+                    <span className="text-white">{friend.displayName}</span>
+                    {isSelected(friend.displayName) && <span className="ml-auto text-orange-400 text-xs">✓</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Manual input */}
         <AutocompleteInput value={f.companions} onChange={(val) => setF({ ...f, companions: val })}
-          suggestions={companionSuggestions} placeholder="nt. Jüri, Mart"
-          className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white" />
+          suggestions={companionSuggestions} placeholder="või sisesta käsitsi (komaga eraldatud)"
+          className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-2 text-white text-sm" />
       </div>
     </div>
   );
@@ -131,6 +177,7 @@ export default function Dashboard() {
   const [editSession, setEditSession] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [logTab, setLogTab] = useState(null);
+  const [friendsList, setFriendsList] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -148,6 +195,21 @@ export default function Dashboard() {
       setSaunas(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     return unsub;
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const loadFriends = async () => {
+      const snap = await getDocs(collection(db, "users", user.uid, "friends"));
+      const accepted = snap.docs.filter(d => d.data().status === "accepted");
+      const list = await Promise.all(accepted.map(async (d) => {
+        const profSnap = await getDoc(doc(db, "users", d.id));
+        const prof = profSnap.exists() ? profSnap.data() : {};
+        return { uid: d.id, displayName: prof.displayName || d.id, avatarUrl: prof.avatarUrl || "" };
+      }));
+      setFriendsList(list);
+    };
+    loadFriends();
   }, [user]);
 
   const locationSuggestions = [...new Set(saunas.filter(s => s.location).map(s => s.location))];
@@ -272,6 +334,7 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold">🧖 SaunaStats</h1>
         <div className="flex gap-4 text-sm text-stone-400 items-center">
           <Link to="/leaderboard" className="hover:text-white">Leaderboard</Link>
+          <Link to="/friends" className="hover:text-white">Sõbrad</Link>
           <Link to="/settings" className="hover:text-white">Profiil</Link>
           <button onClick={() => signOut(auth).then(() => navigate("/login"))} className="hover:text-white">Sign out</button>
         </div>
@@ -448,7 +511,7 @@ export default function Dashboard() {
       {/* Add Form */}
       {showForm && (
         <div className="bg-stone-800 rounded-xl p-5 mb-4">
-          <FormFields f={form} setF={setForm} locationSuggestions={locationSuggestions} companionSuggestions={companionSuggestions} />
+          <FormFields f={form} setF={setForm} locationSuggestions={locationSuggestions} companionSuggestions={companionSuggestions} friendsList={friendsList} />
           <button onClick={handleAdd}
             className="w-full bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition mt-4">
             Salvesta 🧖
@@ -500,7 +563,7 @@ export default function Dashboard() {
               <button onClick={() => { setEditSession(null); setEditForm(null); }}
                 className="text-stone-400 hover:text-white text-xl">✕</button>
             </div>
-            <FormFields f={editForm} setF={setEditForm} locationSuggestions={locationSuggestions} companionSuggestions={companionSuggestions} />
+            <FormFields f={editForm} setF={setEditForm} locationSuggestions={locationSuggestions} companionSuggestions={companionSuggestions} friendsList={friendsList} />
             <div className="flex gap-3 mt-4">
               <button onClick={handleDelete}
                 className="flex-1 bg-red-600 hover:bg-red-700 font-semibold py-3 rounded-xl transition text-sm">
