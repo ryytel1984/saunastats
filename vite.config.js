@@ -9,6 +9,12 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
+      strategies: "injectManifest",
+      srcDir: "public",
+      filename: "firebase-messaging-sw.js",
+      injectManifest: {
+        injectionPoint: undefined,
+      },
       manifest: {
         name: "SaunaStats",
         short_name: "SaunaStats",
