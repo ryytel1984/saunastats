@@ -443,6 +443,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen text-white" style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
+      <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
       <div className="max-w-2xl mx-auto p-4">
 
       <div className="flex justify-between items-center mb-6">
@@ -624,18 +625,38 @@ export default function Dashboard() {
         </div>
       )}
 
-      <button onClick={() => setShowForm(!showForm)}
-        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl mb-4 transition">
+      {/* Floating add button — ainult mobiilil */}
+      <button
+        onClick={() => setShowForm(true)}
+        className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-orange-500 hover:bg-orange-600 active:scale-95 rounded-full flex items-center justify-center text-2xl font-light transition-all z-40"
+        style={{ boxShadow: "0 4px 24px rgba(249,115,22,0.5)" }}
+      >
+        +
+      </button>
+
+      {/* Inline nupp — ainult desktopil */}
+      <button
+        onClick={() => setShowForm(true)}
+        className="hidden md:block w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl mb-4 transition">
         + Add sauna session
       </button>
 
+      {/* Add session bottom sheet */}
       {showForm && (
-        <div className="bg-black/50 rounded-xl p-5 mb-4">
-          <FormFields f={form} setF={setForm} locationSuggestions={locationSuggestions} friendsList={friendsList} />
-          <button onClick={handleAdd}
-            className="w-full bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition mt-4">
-            Save 🧖
-          </button>
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/70" onClick={() => setShowForm(false)} />
+          <div className="relative bg-stone-800 rounded-t-2xl w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto"
+            style={{ animation: "slideUp 0.25s ease-out" }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold">Add sauna session</h2>
+              <button onClick={() => setShowForm(false)} className="text-stone-400 hover:text-white text-xl">✕</button>
+            </div>
+            <FormFields f={form} setF={setForm} locationSuggestions={locationSuggestions} friendsList={friendsList} />
+            <button onClick={handleAdd}
+              className="w-full bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition mt-4">
+              Save 🧖
+            </button>
+          </div>
         </div>
       )}
 
