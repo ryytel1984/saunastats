@@ -309,6 +309,44 @@ export default function Settings() {
           </div>
         )}
       </div>
+
+      {/* Install App */}
+      {(() => {
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        const isSafari = isIOS && /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
+        const isChromeIOS = isIOS && /crios/i.test(navigator.userAgent);
+        const isInstalled = window.matchMedia("(display-mode: standalone)").matches;
+        if (isInstalled) return null;
+        if (!isIOS && !isAndroid) return null;
+        return (
+          <div className="bg-black/40 rounded-2xl p-4 mt-4">
+            <div className="text-stone-400 text-xs uppercase tracking-wide mb-3">📱 Install App</div>
+            {isSafari && (
+              <div className="text-stone-300 text-sm space-y-2">
+                <div>Add SaunaStats to your home screen for quick access:</div>
+                <div className="flex items-center gap-2 text-xs text-stone-400">
+                  <span className="bg-stone-700 text-white px-2 py-1 rounded">⬆ Share</span>
+                  <span>→</span>
+                  <span className="bg-stone-700 text-white px-2 py-1 rounded">Add to Home Screen</span>
+                </div>
+              </div>
+            )}
+            {isChromeIOS && (
+              <div className="text-stone-300 text-sm space-y-2">
+                <div>Chrome doesn't support home screen install on iOS.</div>
+                <div className="text-stone-400 text-xs">Open <span className="text-orange-400">saunastats.eu</span> in Safari, then use Share → Add to Home Screen.</div>
+              </div>
+            )}
+            {isAndroid && (
+              <div className="text-stone-300 text-sm space-y-2">
+                <div>Add SaunaStats to your home screen:</div>
+                <div className="text-stone-400 text-xs">Chrome shows an install banner automatically — tap <span className="text-white font-medium">Install</span> when it appears. Or: Chrome menu (⋮) → <span className="text-white font-medium">Add to Home Screen</span>.</div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
