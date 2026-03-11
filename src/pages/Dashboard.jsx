@@ -383,22 +383,23 @@ export default function Dashboard() {
   };
 
 
-  const handleMerge = async (targetSession) => {
-    if (!editSession) return;
-    const existingUids = (editSession.companions || []).filter(c => c.uid).map(c => c.uid);
-    const existingTexts = (editSession.companions || []).filter(c => c.text).map(c => c.text);
-    const newCompanions = [
-      ...(editSession.companions || []),
-      ...(targetSession.companions || []).filter(c => {
+  const handleMerge = async (masterSession, sessionsToMerge) => {
+    // masterSession arvud jäävad, companions ühendatakse kõigist
+    let companions = [...(masterSession.companions || [])];
+    for (const s of sessionsToMerge) {
+      const existingUids = companions.filter(c => c.uid).map(c => c.uid);
+      const existingTexts = companions.filter(c => c.text).map(c => c.text);
+      const newOnes = (s.companions || []).filter(c => {
         if (c.uid) return !existingUids.includes(c.uid);
         if (c.text) return !existingTexts.includes(c.text);
         return false;
-      }),
-    ];
-    await updateDoc(doc(db, "users", user.uid, "saunas", editSession.id), {
-      companions: newCompanions,
-    });
-    await deleteDoc(doc(db, "users", user.uid, "saunas", targetSession.id));
+      });
+      companions = [...companions, ...newOnes];
+    }
+    await updateDoc(doc(db, "users", user.uid, "saunas", masterSession.id), { companions });
+    for (const s of sessionsToMerge) {
+      await deleteDoc(doc(db, "users", user.uid, "saunas", s.id));
+    }
     setEditSession(null);
     setEditForm(null);
   };
@@ -692,26 +693,59 @@ export default function Dashboard() {
           ))}
         </div>
         <div className="space-y-2">
-          {tabSaunas.map((s) => {
-            const b = getBeers(s);
-            const w = getWaters(s);
-            const names = getCompanionNames(s.companions, userMap);
-            return (
-              <div key={s.id} onClick={() => openEdit(s)}
-                className="bg-black/40 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:bg-black/60 transition">
-                <div>
-                  <div className="font-semibold text-sm">{s.date} · {s.location || (s.type === "home" ? "Home" : "Away")}</div>
-                  <div className="text-stone-400 text-xs mt-1">
-                    🌊 {s.steams}
-                    {b > 0 && ` · 🍺 ${b}`}
-                    {w > 0 && ` · 💧 ${w}`}
-                    {names.length > 0 && ` · 👥 ${names.join(", ")}`}
+          {(() => {
+            // Grupeeri sama kuupäeva järgi
+            const dateGroups = {};
+            tabSaunas.forEach(s => {
+              if (!dateGroups[s.date]) dateGroups[s.date] = [];
+              dateGroups[s.date].push(s);
+            });
+
+            return tabSaunas.reduce((acc, s) => {
+              const group = dateGroups[s.date];
+              const isFirst = group[0].id === s.id;
+              const isDuplicate = group.length > 1;
+
+              // Näita merge banner ainult esimese kande eel
+              if (isDuplicate && isFirst) {
+                acc.push(
+                  <div key={"merge-" + s.date}
+                    className="rounded-xl border border-orange-500/50 bg-orange-500/10 px-3 py-2 flex items-center justify-between">
+                    <div className="text-orange-400 text-xs font-medium">
+                      🔀 {group.length} sessions on {s.date}
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (window.confirm("Merge these sessions? First session stats stay, companions combined.")) {
+                          handleMerge(group[0], group.slice(1));
+                        }
+                      }}
+                      className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-lg transition font-medium">
+                      Merge
+                    </button>
                   </div>
+                );
+              }
+
+              acc.push(
+                <div key={s.id} onClick={() => openEdit(s)}
+                  className={`rounded-xl p-3 flex justify-between items-center cursor-pointer transition ${isDuplicate ? "bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20" : "bg-black/40 hover:bg-black/60"}`}>
+                  <div>
+                    <div className="font-semibold text-sm">{s.date} · {s.location || (s.type === "home" ? "Home" : "Away")}</div>
+                    <div className="text-stone-400 text-xs mt-1">
+                      🌊 {s.steams}
+                      {getBeers(s) > 0 && ` · 🍺 ${getBeers(s)}`}
+                      {getWaters(s) > 0 && ` · 💧 ${getWaters(s)}`}
+                      {getCompanionNames(s.companions, userMap).length > 0 && ` · 👥 ${getCompanionNames(s.companions, userMap).join(", ")}`}
+                    </div>
+                  </div>
+                  <div className="text-stone-500 text-sm ml-2">{s.type === "home" ? "🏠" : "✈️"}</div>
                 </div>
-                <div className="text-stone-500 text-sm ml-2">{s.type === "home" ? "🏠" : "✈️"}</div>
-              </div>
-            );
-          })}
+              );
+
+              return acc;
+            }, []);
+          })()}
         </div>
       </div>
 
@@ -727,20 +761,6 @@ export default function Dashboard() {
                   className="text-stone-400 hover:text-white text-xl">✕</button>
               </div>
               <FormFields f={editForm} setF={setEditForm} locationSuggestions={locationSuggestions} friendsList={friendsList} />
-
-              {sameDaySessions.length > 0 && (
-                <div className="mt-4 border-t border-stone-700 pt-4">
-                  <div className="text-stone-400 text-xs mb-2 uppercase tracking-wide">🔀 Merge with same day session</div>
-                  {sameDaySessions.map(s => (
-                    <button key={s.id}
-                      onClick={() => { if (window.confirm("Merge? Your stats stay, companions combined.")) handleMerge(s); }}
-                      className="w-full text-left bg-stone-700 hover:bg-stone-600 rounded-xl px-3 py-2 text-sm mb-2 transition">
-                      <span className="font-medium">{s.location || (s.type === "home" ? "🏠 Home" : "✈️ Away")}</span>
-                      <span className="text-stone-400 ml-2">🌊 {s.steams}{getBeers(s) > 0 ? ` · 🍺 ${getBeers(s)}` : ""}{getWaters(s) > 0 ? ` · 💧 ${getWaters(s)}` : ""}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
 
               <div className="flex gap-3 mt-4">
                 <button onClick={handleDelete}
