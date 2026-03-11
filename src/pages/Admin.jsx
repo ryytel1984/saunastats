@@ -24,8 +24,13 @@ export default function Admin() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Use onAuthStateChanged but only act once auth is initialized
+    let initialized = false;
     const unsub = auth.onAuthStateChanged(async (u) => {
-      if (!u) { navigate("/login"); return; }
+      if (!initialized) { initialized = true; }
+      else if (!u) { navigate("/login"); return; }
+
+      if (!u) return; // still initializing
       if (u.uid !== ADMIN_UID) { navigate("/dashboard"); return; }
 
       const usersSnap = await getDocs(collection(db, "users"));
