@@ -34,7 +34,7 @@ export default function Friends() {
         const data = d.data();
         const profSnap = await getDoc(doc(db, "users", d.id));
         const prof = profSnap.exists() ? profSnap.data() : {};
-        const entry = { uid: d.id, ...data, displayName: prof.displayName || d.id, username: prof.username || "", avatarUrl: prof.avatarUrl || "" };
+        const entry = { uid: d.id, ...data, displayName: prof.username || prof.displayName || d.id, username: prof.username || "", avatarUrl: prof.avatarUrl || "" };
         if (data.status === "accepted") accepted.push(entry);
         else if (data.status === "pending" && data.direction === "sent") sent.push(entry);
         else if (data.status === "pending" && data.direction === "received") received.push(entry);

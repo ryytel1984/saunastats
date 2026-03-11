@@ -28,6 +28,7 @@ export default function Profile() {
   const [currentUser, setCurrentUser] = useState(null);
   const [friendStatus, setFriendStatus] = useState(null); // null | "friends" | "sent" | "received"
   const [addingFriend, setAddingFriend] = useState(false);
+  const [userMap, setUserMap] = useState({}); // username -> username (for profile links)
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged((u) => setCurrentUser(u));
@@ -53,6 +54,14 @@ export default function Profile() {
         return { uid: d.id, displayName: prof.displayName || d.id, username: prof.username || "", avatarUrl: prof.avatarUrl || "" };
       }));
       setFriendsList(list);
+
+      // Build username map for clickable companions
+      const map = {};
+      snap.docs.forEach(d => {
+        const u = d.data().username;
+        if (u) map[u] = u;
+      });
+      setUserMap(map);
     };
     fetchProfile();
   }, [username]);
@@ -379,7 +388,11 @@ export default function Profile() {
           <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">👥 Top companions ({thisYear})</div>
           {compTop.map(([name, count]) => (
             <div key={name} className="flex justify-between py-1 border-b border-stone-700 last:border-0">
-              <span>{name}</span>
+              {userMap[name] ? (
+                <Link to={`/${name}`} className="text-orange-300 hover:text-orange-400 hover:underline">{name}</Link>
+              ) : (
+                <span>{name}</span>
+              )}
               <span className="text-orange-400">{count}x</span>
             </div>
           ))}
@@ -408,7 +421,14 @@ export default function Profile() {
                     🌊 {s.steams}
                     {b > 0 && ` · 🍺 ${b}`}
                     {w > 0 && ` · 💧 ${w}`}
-                    {s.companions?.length > 0 && ` · 👥 ${s.companions.join(", ")}`}
+                    {s.companions?.length > 0 && (
+                      <span> · 👥 {s.companions.map((c, i) => (
+                        <span key={c}>
+                          {i > 0 && ", "}
+                          {userMap[c] ? <Link to={`/${c}`} className="text-orange-300 hover:underline">{c}</Link> : c}
+                        </span>
+                      ))}</span>
+                    )}
                   </div>
                 </div>
                 <div className="text-stone-500 text-sm ml-2">{s.type === "home" ? "🏠" : "✈️"}</div>
