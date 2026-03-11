@@ -171,6 +171,7 @@ export default function Dashboard() {
   const [editForm, setEditForm] = useState(null);
   const [logTab, setLogTab] = useState(null);
   const [friendsList, setFriendsList] = useState([]);
+  const [pendingCount, setPendingCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -195,6 +196,8 @@ export default function Dashboard() {
     const loadFriends = async () => {
       const snap = await getDocs(collection(db, "users", user.uid, "friends"));
       const accepted = snap.docs.filter(d => d.data().status === "accepted");
+      const pending = snap.docs.filter(d => d.data().status === "pending" && d.data().direction === "received");
+      setPendingCount(pending.length);
       const list = await Promise.all(accepted.map(async (d) => {
         const profSnap = await getDoc(doc(db, "users", d.id));
         const prof = profSnap.exists() ? profSnap.data() : {};
@@ -326,12 +329,18 @@ export default function Dashboard() {
         <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="h-11" />
         <div className="flex items-center gap-3 text-sm text-stone-400">
           <Link to="/leaderboard" className="hover:text-white">Leaderboard</Link>
-          <Link to="/friends" className="hover:text-white">Friends</Link>
+          <Link to="/friends" className="hover:text-white relative">
+            Friends
+            {pendingCount > 0 && (
+              <span className="absolute -top-1 -right-2 w-2 h-2 bg-red-500 rounded-full" />
+            )}
+          </Link>
           <Link to="/settings" className="hover:text-white">Profile</Link>
           <button onClick={() => signOut(auth).then(() => navigate("/login"))} className="hover:text-white text-base">↪</button>
         </div>
       </div>
 
+      {lastYearSaunas.length > 0 && (
       <div className="bg-black/50 rounded-xl p-4 mb-4">
         <div className="text-stone-400 text-xs mb-1 uppercase tracking-wide">Year comparison</div>
         <div className="text-stone-500 text-xs mb-3">same period — up to today</div>
@@ -356,6 +365,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      )}
 
       <div className="bg-black/50 rounded-xl p-4 mb-4">
         <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🏠 Home vs Away</div>

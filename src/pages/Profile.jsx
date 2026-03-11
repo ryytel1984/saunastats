@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { db } from "../firebase";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../firebase";
+import { collection, getDocs, doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useParams, Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
@@ -25,6 +25,14 @@ export default function Profile() {
   const [logTab, setLogTab] = useState(null);
   const [activeMainTab, setActiveMainTab] = useState("stats");
   const [friendsList, setFriendsList] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [friendStatus, setFriendStatus] = useState(null); // null | "friends" | "sent" | "received"
+  const [addingFriend, setAddingFriend] = useState(false);
+
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged((u) => setCurrentUser(u));
+    return unsub;
+  }, []);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -48,6 +56,28 @@ export default function Profile() {
     };
     fetchProfile();
   }, [username]);
+
+  useEffect(() => {
+    const checkFriendStatus = async () => {
+      if (!currentUser || !profile || currentUser.uid === profile.uid) return;
+      const snap = await getDoc(doc(db, "users", currentUser.uid, "friends", profile.uid));
+      if (!snap.exists()) { setFriendStatus(null); return; }
+      const d = snap.data();
+      if (d.status === "accepted") setFriendStatus("friends");
+      else if (d.direction === "sent") setFriendStatus("sent");
+      else setFriendStatus("received");
+    };
+    checkFriendStatus();
+  }, [currentUser, profile]);
+
+  const handleAddFriend = async () => {
+    if (!currentUser || !profile) return;
+    setAddingFriend(true);
+    await setDoc(doc(db, "users", currentUser.uid, "friends", profile.uid), { status: "pending", direction: "sent", addedAt: serverTimestamp() });
+    await setDoc(doc(db, "users", profile.uid, "friends", currentUser.uid), { status: "pending", direction: "received", addedAt: serverTimestamp() });
+    setFriendStatus("sent");
+    setAddingFriend(false);
+  };
 
   if (notFound) return (
     <div className="min-h-screen bg-stone-900 text-white flex items-center justify-center">
@@ -133,9 +163,22 @@ export default function Profile() {
           <h1 className="text-2xl font-bold">{profile.displayName}</h1>
           <div className="text-stone-400">@{profile.username}</div>
         </div>
-        <div className="ml-auto flex flex-col items-end gap-1">
+        <div className="ml-auto flex flex-col items-end gap-2">
           <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="h-8 opacity-60" />
-          <Link to="/leaderboard" className="text-stone-400 hover:text-white text-sm">Leaderboard</Link>
+          {currentUser && currentUser.uid !== profile.uid && (
+            <>
+              {friendStatus === null && (
+                <button onClick={handleAddFriend} disabled={addingFriend}
+                  className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                  + Add friend
+                </button>
+              )}
+              {friendStatus === "sent" && <span className="text-stone-400 text-xs">Request sent</span>}
+              {friendStatus === "received" && <span className="text-orange-400 text-xs">Wants to be friends</span>}
+              {friendStatus === "friends" && <span className="text-green-400 text-xs">✓ Friends</span>}
+            </>
+          )}
+          <Link to="/leaderboard" className="text-stone-400 hover:text-white text-xs">Leaderboard</Link>
         </div>
       </div>
 
@@ -177,6 +220,7 @@ export default function Profile() {
       {/* Stats tab */}
       {activeMainTab === "stats" && (<>
 
+      {lastYearSaunas.length > 0 && (
       <div className="bg-black/50 rounded-xl p-4 mb-4">
         <div className="text-stone-400 text-xs mb-1 uppercase tracking-wide">Year comparison</div>
         <div className="text-stone-500 text-xs mb-3">same period — up to today</div>
@@ -201,6 +245,7 @@ export default function Profile() {
           </div>
         </div>
       </div>
+      )}
 
       <div className="bg-black/50 rounded-xl p-4 mb-4">
         <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🏠 Home vs Away</div>
