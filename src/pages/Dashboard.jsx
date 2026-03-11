@@ -407,27 +407,6 @@ export default function Dashboard() {
   };
 
 
-  const handleMerge = async (masterSession, sessionsToMerge) => {
-    // masterSession arvud jäävad, companions ühendatakse kõigist
-    let companions = [...(masterSession.companions || [])];
-    for (const s of sessionsToMerge) {
-      const existingUids = companions.filter(c => c.uid).map(c => c.uid);
-      const existingTexts = companions.filter(c => c.text).map(c => c.text);
-      const newOnes = (s.companions || []).filter(c => {
-        if (c.uid) return !existingUids.includes(c.uid);
-        if (c.text) return !existingTexts.includes(c.text);
-        return false;
-      });
-      companions = [...companions, ...newOnes];
-    }
-    await updateDoc(doc(db, "users", user.uid, "saunas", masterSession.id), { companions });
-    for (const s of sessionsToMerge) {
-      await deleteDoc(doc(db, "users", user.uid, "saunas", s.id));
-    }
-    setEditSession(null);
-    setEditForm(null);
-  };
-
   const thisYear = new Date().getFullYear().toString();
   const lastYear = (new Date().getFullYear() - 1).toString();
   const todayMMDD = new Date().toISOString().slice(5, 10);
