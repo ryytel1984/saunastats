@@ -25,9 +25,9 @@ export default function Admin() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged((u) => {
-      if (u === null) {
-        // auth fully loaded, no user
+    auth.authStateReady().then(() => {
+      const u = auth.currentUser;
+      if (!u) {
         navigate("/login");
       } else if (u.uid !== ADMIN_UID) {
         navigate("/dashboard");
@@ -36,7 +36,6 @@ export default function Admin() {
         loadData();
       }
     });
-    return unsub;
   }, []);
 
   const loadData = async () => {
