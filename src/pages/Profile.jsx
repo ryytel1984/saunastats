@@ -17,12 +17,13 @@ function getWaters(s) {
   return 0;
 }
 
-// uid -> username lookup; falls back to text/string for old data
+// uid -> {displayName, username} lookup; falls back to text/string for old data
 function resolveCompanion(c, userMap) {
   if (typeof c === "string") return { label: c, username: null };
   if (c.uid) {
-    const username = userMap[c.uid];
-    return { label: username || c.uid, username: username || null };
+    const entry = userMap[c.uid];
+    if (entry) return { label: entry.displayName, username: entry.username };
+    return { label: c.uid, username: null };
   }
   if (c.text) return { label: c.text, username: null };
   return { label: "", username: null };
@@ -60,11 +61,14 @@ export default function Profile() {
       setProfile({ uid: match.id, ...match.data() });
       const uid = match.id;
 
-      // Build userMap: uid -> current username (from all users)
+      // Build userMap: uid -> {displayName, username}
       const map = {};
       snap.docs.forEach(d => {
         const data = d.data();
-        if (data.username) map[d.id] = data.username;
+        map[d.id] = {
+          displayName: data.displayName || data.username || d.id,
+          username: data.username || "",
+        };
       });
       setUserMap(map);
 
@@ -76,7 +80,7 @@ export default function Profile() {
       const list = await Promise.all(accepted.map(async (d) => {
         const profSnap = await getDoc(doc(db, "users", d.id));
         const prof = profSnap.exists() ? profSnap.data() : {};
-        return { uid: d.id, displayName: prof.username || prof.displayName || d.id, username: prof.username || "", avatarUrl: prof.avatarUrl || "" };
+        return { uid: d.id, displayName: prof.displayName || prof.username || d.id, username: prof.username || "", avatarUrl: prof.avatarUrl || "" };
       }));
       setFriendsList(list);
     };
@@ -406,9 +410,9 @@ export default function Profile() {
         <div className="bg-black/50 rounded-xl p-4 mb-4">
           <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">👥 Top companions ({thisYear})</div>
           {compTop.map(([label, count]) => {
-            // Find uid for this label to get username for link
-            const uid = Object.entries(userMap).find(([, u]) => u === label)?.[0];
-            const linkUsername = uid ? userMap[uid] : null;
+            // Find uid whose displayName matches this label
+            const uid = Object.entries(userMap).find(([, e]) => e.displayName === label)?.[0];
+            const linkUsername = uid ? userMap[uid].username : null;
             return (
               <div key={label} className="flex justify-between py-1 border-b border-stone-700 last:border-0">
                 {linkUsername ? (

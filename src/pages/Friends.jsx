@@ -54,7 +54,7 @@ export default function Friends() {
         const prof = profSnap.exists() ? profSnap.data() : {};
         const entry = {
           uid: d.id, ...data,
-          displayName: prof.username || prof.displayName || d.id,
+          displayName: prof.displayName || prof.username || d.id,
           username: prof.username || "",
           avatarUrl: prof.avatarUrl || ""
         };
@@ -230,7 +230,7 @@ export default function Friends() {
                 <img src={searchResult.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(searchResult.displayName || "?")}`}
                   className="w-10 h-10 rounded-full object-cover" alt="" />
                 <div>
-                  <div className="font-semibold text-sm">{searchResult.username || searchResult.displayName}</div>
+                  <div className="font-semibold text-sm">{searchResult.displayName || searchResult.username}</div>
                   <div className="text-stone-400 text-xs">@{searchResult.username}</div>
                 </div>
               </div>

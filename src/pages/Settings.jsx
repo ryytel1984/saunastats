@@ -43,7 +43,7 @@ export default function Settings() {
       const list = await Promise.all(accepted.map(async (d) => {
         const profSnap = await getDoc(doc(db, "users", d.id));
         const prof = profSnap.exists() ? profSnap.data() : {};
-        return { uid: d.id, username: prof.username || d.id, displayName: prof.username || prof.displayName || d.id, avatarUrl: prof.avatarUrl || "" };
+        return { uid: d.id, username: prof.username || d.id, displayName: prof.displayName || prof.username || d.id, avatarUrl: prof.avatarUrl || "" };
       }));
       setFriends(list);
       setLoading(false);
@@ -125,7 +125,7 @@ export default function Settings() {
 
     // Send notifications to the linked user for each session
     const mySnap = await getDoc(doc(db, "users", user.uid));
-    const myUsername = mySnap.data()?.username || user.uid;
+    const myUsername = mySnap.data()?.displayName || mySnap.data()?.username || user.uid;
     const { addDoc, serverTimestamp } = await import("firebase/firestore");
     for (const session of linkMatches) {
       await addDoc(collection(db, "users", linkTarget.uid, "notifications"), {

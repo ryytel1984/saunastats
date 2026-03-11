@@ -260,10 +260,10 @@ export default function Dashboard() {
       const list = await Promise.all(accepted.map(async (d) => {
         const profSnap = await getDoc(doc(db, "users", d.id));
         const prof = profSnap.exists() ? profSnap.data() : {};
-        return { uid: d.id, displayName: prof.username || prof.displayName || d.id, avatarUrl: prof.avatarUrl || "" };
+        return { uid: d.id, displayName: prof.displayName || prof.username || d.id, avatarUrl: prof.avatarUrl || "" };
       }));
       setFriendsList(list);
-      // Build userMap from friends
+      // Build userMap from friends: uid -> displayName
       const map = {};
       list.forEach(f => { map[f.uid] = f.displayName; });
       setUserMap(map);
@@ -281,7 +281,7 @@ export default function Dashboard() {
     const uidCompanions = companions.filter(c => c.uid);
     if (uidCompanions.length === 0) return;
     const mySnap = await getDoc(doc(db, "users", user.uid));
-    const myUsername = mySnap.data()?.username || user.uid;
+    const myUsername = mySnap.data()?.displayName || mySnap.data()?.username || user.uid;
     for (const c of uidCompanions) {
       await addDoc(collection(db, "users", c.uid, "notifications"), {
         type: "session_invite",
