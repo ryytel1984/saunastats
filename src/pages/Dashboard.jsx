@@ -335,13 +335,20 @@ export default function Dashboard() {
       <div className="bg-black/50 rounded-xl p-4 mb-4">
         <div className="text-stone-400 text-xs mb-1 uppercase tracking-wide">Year comparison</div>
         <div className="text-stone-500 text-xs mb-3">same period — up to today</div>
-        <div className="flex justify-around">
+        <div className="flex justify-around items-center">
           <div className="text-center">
             <div className="text-3xl font-bold text-orange-400">{thisYearSaunas.length}</div>
             <div className="text-stone-400 text-sm">{thisYear}</div>
             <div className="text-stone-500 text-xs">{tempoThisYear}/week</div>
           </div>
-          <div className="text-stone-600 self-center text-xl">↔</div>
+          <div className="text-center">
+            {(() => {
+              const diff = thisYearSaunas.length - lastYearSamePeriod.length;
+              if (diff > 0) return <><div className="text-green-400 font-bold text-lg">+{diff}</div><div className="text-stone-500 text-xs">ahead</div></>;
+              if (diff < 0) return <><div className="text-red-400 font-bold text-lg">{diff}</div><div className="text-stone-500 text-xs">behind</div></>;
+              return <><div className="text-stone-400 font-bold text-lg">—</div><div className="text-stone-500 text-xs">equal</div></>;
+            })()}
+          </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-stone-400">{lastYearSamePeriod.length}</div>
             <div className="text-stone-400 text-sm">{lastYear}</div>
