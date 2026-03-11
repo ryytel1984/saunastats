@@ -26,32 +26,39 @@ function StatCard({ value, label }) {
   );
 }
 
-const isMobile = () => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 const isInAppBrowser = () => /FBAN|FBAV|Instagram|Messenger|WeChat|Line\/|Musical/i.test(navigator.userAgent);
+
+async function saveNewUser(user) {
+  const userRef = doc(db, "users", user.uid);
+  const userSnap = await getDoc(userRef);
+  if (!userSnap.exists()) {
+    const username = user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
+    await setDoc(userRef, {
+      username,
+      displayName: user.displayName,
+      avatarUrl: user.photoURL,
+      createdAt: new Date().toISOString(),
+    });
+  }
+}
 
 export default function Login() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [checkingRedirect, setCheckingRedirect] = useState(true);
 
   useEffect(() => {
-    // Handle redirect result on mobile
-    getRedirectResult(auth).then(async (result) => {
-      if (!result) return;
-      const user = result.user;
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-      if (!userSnap.exists()) {
-        const username = user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
-        await setDoc(userRef, {
-          username,
-          displayName: user.displayName,
-          avatarUrl: user.photoURL,
-          createdAt: new Date().toISOString(),
-        });
-      }
-      navigate("/dashboard");
-    }).catch(console.error);
+    // Check if we're returning from a redirect login
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result?.user) {
+          await saveNewUser(result.user);
+          navigate("/dashboard");
+        }
+      })
+      .catch(console.error)
+      .finally(() => setCheckingRedirect(false));
 
     // Load stats
     const load = async () => {
@@ -74,40 +81,41 @@ export default function Login() {
   }, []);
 
   const handleLogin = async () => {
+    if (isInAppBrowser()) return;
     setLoading(true);
     try {
-      if (isMobile()) {
-        await signInWithRedirect(auth, provider);
-      } else {
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-        const userRef = doc(db, "users", user.uid);
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) {
-          const username = user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
-          await setDoc(userRef, {
-            username,
-            displayName: user.displayName,
-            avatarUrl: user.photoURL,
-            createdAt: new Date().toISOString(),
-          });
-        }
-        navigate("/dashboard");
-      }
+      // Try popup first
+      const result = await signInWithPopup(auth, provider);
+      await saveNewUser(result.user);
+      navigate("/dashboard");
     } catch (err) {
-      console.error(err);
-      setLoading(false);
+      // Popup blocked or failed — fall back to redirect
+      if (err.code === "auth/popup-blocked" || err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request") {
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (e) {
+          console.error(e);
+          setLoading(false);
+        }
+      } else {
+        console.error(err);
+        setLoading(false);
+      }
     }
   };
+
+  if (checkingRedirect) return (
+    <div className="min-h-screen flex items-center justify-center"
+      style={{ backgroundImage: "url('/sauna-bg.jpg')", backgroundSize: "cover", backgroundPosition: "center" }}>
+      <div className="absolute inset-0 bg-black/60" />
+      <div className="relative text-stone-400">Loading...</div>
+    </div>
+  );
 
   return (
     <div
       className="min-h-screen text-white flex flex-col items-center justify-center px-4 relative"
-      style={{
-        backgroundImage: "url('/sauna-bg.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
+      style={{ backgroundImage: "url('/sauna-bg.jpg')", backgroundSize: "cover", backgroundPosition: "center" }}
     >
       <div className="absolute inset-0 bg-black/60" />
 
@@ -132,7 +140,7 @@ export default function Login() {
           className="flex items-center justify-center gap-3 bg-white text-stone-900 font-semibold px-8 py-3 rounded-xl hover:bg-stone-100 transition w-full max-w-xs disabled:opacity-60"
         >
           <img src="https://www.google.com/favicon.ico" className="w-5 h-5" />
-          {loading ? "Redirecting..." : "Continue with Google"}
+          {loading ? "Signing in..." : "Continue with Google"}
         </button>
 
         {isInAppBrowser() && (
