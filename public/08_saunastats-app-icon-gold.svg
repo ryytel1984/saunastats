@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="SaunaStats icon">
+    <rect x="36" y="36" width="440" height="440" rx="110" fill="#1A1A1A"/>
+    <g transform="translate(0,6)">
+      <path d="M88 368 C152 349, 212 343, 272 347 C336 351, 387 360, 424 372 C357 374, 293 382, 217 387 C167 391, 124 387, 88 368 Z" fill="#F4A300"/>
+      <rect x="125" y="285" width="56" height="62" rx="10" fill="#F4A300"/>
+      <rect x="194" y="255" width="56" height="92" rx="10" fill="#F4A300"/>
+      <rect x="263" y="217" width="56" height="130" rx="10" fill="#F4A300"/>
+      <rect x="332" y="180" width="56" height="167" rx="10" fill="#F4A300"/>
+      <path d="M159 171 C146 146, 147 130, 160 108 C171 90, 176 72, 168 49 C198 71, 205 110, 188 142 C181 155, 173 164, 159 171 Z" fill="#F4A300"/>
+      <path d="M241 146 C229 119, 230 99, 245 75 C257 56, 264 37, 257 14 C287 38, 294 80, 276 113 C269 126, 260 138, 241 146 Z" fill="#F4A300"/>
+      <path d="M324 171 C311 146, 312 130, 325 108 C336 90, 341 72, 333 49 C363 71, 370 110, 353 142 C346 155, 338 164, 324 171 Z" fill="#F4A300"/>
+    </g>
+</svg>

@@ -7,18 +7,22 @@ import Friends from "./pages/Friends";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
+import InstallBanner from "./components/InstallBanner";
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/leaderboard" element={<Leaderboard />} />
-      <Route path="/friends" element={<Friends />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="/admin" element={<Admin />} />
-      <Route path="/:username" element={<Profile />} />
-    </Routes>
+    <>
+      <InstallBanner />
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route path="/friends" element={<Friends />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/:username" element={<Profile />} />
+      </Routes>
+    </>
   );
 }
