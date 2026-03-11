@@ -62,15 +62,12 @@ export default function Landing() {
         <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="w-full max-w-xs mx-auto mb-8" />
 
         {/* Stats */}
-        <div className="bg-black/40 backdrop-blur-sm rounded-2xl px-6 py-5 mb-8 w-full grid grid-cols-3 gap-4 border border-white/10">
+        <div className="bg-black/40 backdrop-blur-sm rounded-2xl px-6 py-5 mb-8 w-full grid grid-cols-5 gap-4 border border-white/10">
           <StatCard value={stats?.sessions ?? null} label="Saunas logged" />
           <StatCard value={stats?.steams ?? null} label="Steams" />
           <StatCard value={stats?.beers ?? null} label="Beers" />
           <StatCard value={stats?.waters ?? null} label="Waters" />
           <StatCard value={stats?.userCount ?? null} label="Enthusiasts" />
-          <div className="text-center flex items-center justify-center">
-            <span className="text-4xl">🧖</span>
-          </div>
         </div>
 
         <a
