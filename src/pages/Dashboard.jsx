@@ -232,6 +232,8 @@ export default function Dashboard() {
   const [logTab, setLogTab] = useState(null);
   const [friendsList, setFriendsList] = useState([]);
   const [notifCount, setNotifCount] = useState(0);
+  const [mergeModal, setMergeModal] = useState(null);
+  const [dismissedMergeDates, setDismissedMergeDates] = useState(new Set());
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -706,23 +708,26 @@ export default function Dashboard() {
               const isFirst = group[0].id === s.id;
               const isDuplicate = group.length > 1;
 
-              // Näita merge banner ainult esimese kande eel
-              if (isDuplicate && isFirst) {
+              // Näita merge banner ainult esimese kande eel, kui pole dismissed
+              if (isDuplicate && isFirst && !dismissedMergeDates.has(s.date)) {
                 acc.push(
                   <div key={"merge-" + s.date}
-                    className="rounded-xl border border-orange-500/50 bg-orange-500/10 px-3 py-2 flex items-center justify-between">
+                    className="rounded-xl border border-orange-500/50 bg-orange-500/10 px-3 py-2 flex items-center justify-between gap-2">
                     <div className="text-orange-400 text-xs font-medium">
                       🔀 {group.length} sessions on {s.date}
                     </div>
-                    <button
-                      onClick={() => {
-                        if (window.confirm("Merge these sessions? First session stats stay, companions combined.")) {
-                          handleMerge(group[0], group.slice(1));
-                        }
-                      }}
-                      className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-lg transition font-medium">
-                      Merge
-                    </button>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => setDismissedMergeDates(prev => new Set([...prev, s.date]))}
+                        className="text-xs bg-stone-700 hover:bg-stone-600 text-stone-300 px-3 py-1 rounded-lg transition font-medium">
+                        Keep separate
+                      </button>
+                      <button
+                        onClick={() => setMergeModal({ group, selected: new Set(group.map(x => x.id)) })}
+                        className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-lg transition font-medium">
+                        Merge
+                      </button>
+                    </div>
                   </div>
                 );
               }
@@ -770,6 +775,73 @@ export default function Dashboard() {
                 <button onClick={handleSaveEdit}
                   className="flex-grow bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition">
                   Save ✓
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Merge modal */}
+      {mergeModal && (() => {
+        const { group, selected } = mergeModal;
+        const master = group[0];
+        const toggleSelect = (id) => {
+          if (id === master.id) return;
+          const next = new Set(selected);
+          if (next.has(id)) next.delete(id);
+          else next.add(id);
+          setMergeModal({ ...mergeModal, selected: next });
+        };
+        const toMerge = group.filter(s => s.id !== master.id && selected.has(s.id));
+        return (
+          <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) setMergeModal(null); }}>
+            <div className="relative bg-stone-800 rounded-2xl p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              style={{ animation: "slideUp 0.25s ease-out" }}>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold">🔀 Merge sessions</h2>
+                <button onClick={() => setMergeModal(null)} className="text-stone-400 hover:text-white text-xl">✕</button>
+              </div>
+              <p className="text-stone-400 text-sm mb-4">
+                Select which sessions to merge. <span className="text-white">First session stats stay</span>, companions combined. Unselected sessions stay untouched.
+              </p>
+              <div className="space-y-2 mb-5">
+                {group.map((s, i) => {
+                  const isSelected = selected.has(s.id);
+                  const isMaster = s.id === master.id;
+                  return (
+                    <div key={s.id} onClick={() => toggleSelect(s.id)}
+                      className={"rounded-xl p-3 flex items-center gap-3 transition border " + (isMaster ? "cursor-default border-orange-500/40 bg-orange-500/10" : isSelected ? "cursor-pointer border-orange-500/40 bg-orange-500/10" : "cursor-pointer border-stone-700 bg-black/30 opacity-50")}>
+                      <div className={"w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 " + (isSelected ? "border-orange-500 bg-orange-500" : "border-stone-600")}>
+                        {isSelected && <span className="text-white text-xs font-bold">✓</span>}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-sm">
+                          {s.location || (s.type === "home" ? "🏠 Home" : "✈️ Away")}
+                          {isMaster && <span className="ml-2 text-orange-400 text-xs">(stats stay)</span>}
+                        </div>
+                        <div className="text-stone-400 text-xs mt-0.5">
+                          {"🌊 " + s.steams}
+                          {getBeers(s) > 0 && " · 🍺 " + getBeers(s)}
+                          {getWaters(s) > 0 && " · 💧 " + getWaters(s)}
+                          <span className="text-stone-600 ml-1">{"· session " + (i + 1)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => { setDismissedMergeDates(prev => new Set([...prev, master.date])); setMergeModal(null); }}
+                  className="flex-1 bg-stone-700 hover:bg-stone-600 font-semibold py-3 rounded-xl transition text-sm">
+                  Keep separate
+                </button>
+                <button
+                  disabled={toMerge.length === 0}
+                  onClick={() => { handleMerge(master, toMerge); setMergeModal(null); }}
+                  className="flex-grow bg-orange-500 hover:bg-orange-600 disabled:opacity-40 font-semibold py-3 rounded-xl transition">
+                  {"Merge" + (selected.size > 1 ? " " + selected.size + " sessions" : "")}
                 </button>
               </div>
             </div>
