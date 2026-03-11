@@ -3,7 +3,7 @@ import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
-const VAPID_KEY = "BPhfbFjKdsTD03viTUpZHziNSPBPgJMROzoLeBkZ101U7axPXnIeXIUxJ2jw2Q5CrdDQe2Ib71yYb3tBG9JGKw";
+const VAPID_KEY = "hfbFjKdsTD03viTUpZHziNSPBPgJMROzoLeBkZ101U7axPXnIeXIUxJ2jw2Q5CrdDQe2Ib71yYb3tBG9JGKw";
 
 export function usePushNotifications(user) {
   useEffect(() => {
