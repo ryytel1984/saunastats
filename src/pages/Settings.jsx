@@ -158,7 +158,7 @@ export default function Settings() {
   );
 
   return (
-    <div className="min-h-screen text-white p-4 max-w-lg mx-auto"
+    <div className="min-h-screen text-white p-4 max-w-2xl mx-auto"
       style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
       <div className="flex items-center gap-3 mb-6">
         <Link to="/dashboard" className="text-stone-400 hover:text-white text-xl">←</Link>
