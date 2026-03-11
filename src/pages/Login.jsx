@@ -27,6 +27,7 @@ function StatCard({ value, label }) {
 }
 
 const isMobile = () => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+const isInAppBrowser = () => /FBAN|FBAV|Instagram|Messenger|WeChat|Line\/|Musical/i.test(navigator.userAgent);
 
 export default function Login() {
   const navigate = useNavigate();
@@ -127,12 +128,19 @@ export default function Login() {
 
         <button
           onClick={handleLogin}
-          disabled={loading}
+          disabled={loading || isInAppBrowser()}
           className="flex items-center justify-center gap-3 bg-white text-stone-900 font-semibold px-8 py-3 rounded-xl hover:bg-stone-100 transition w-full max-w-xs disabled:opacity-60"
         >
           <img src="https://www.google.com/favicon.ico" className="w-5 h-5" />
           {loading ? "Redirecting..." : "Continue with Google"}
         </button>
+
+        {isInAppBrowser() && (
+          <div className="mt-4 bg-black/50 border border-orange-500/40 rounded-xl px-4 py-3 text-sm text-center max-w-xs">
+            <div className="text-orange-400 font-semibold mb-1">Open in browser</div>
+            <div className="text-stone-300 text-xs">Google login doesn't work inside Messenger or Facebook. Open this link in Safari or Chrome.</div>
+          </div>
+        )}
       </div>
     </div>
   );
