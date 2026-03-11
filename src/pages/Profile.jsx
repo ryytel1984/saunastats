@@ -17,6 +17,22 @@ function getWaters(s) {
   return 0;
 }
 
+// uid -> username lookup; falls back to text/string for old data
+function resolveCompanion(c, userMap) {
+  if (typeof c === "string") return { label: c, username: null };
+  if (c.uid) {
+    const username = userMap[c.uid];
+    return { label: username || c.uid, username: username || null };
+  }
+  if (c.text) return { label: c.text, username: null };
+  return { label: "", username: null };
+}
+
+function getCompanionEntries(companions, userMap) {
+  if (!companions || companions.length === 0) return [];
+  return companions.map(c => resolveCompanion(c, userMap)).filter(e => e.label);
+}
+
 export default function Profile() {
   const { username } = useParams();
   const [profile, setProfile] = useState(null);
@@ -26,9 +42,9 @@ export default function Profile() {
   const [activeMainTab, setActiveMainTab] = useState("stats");
   const [friendsList, setFriendsList] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
-  const [friendStatus, setFriendStatus] = useState(null); // null | "friends" | "sent" | "received"
+  const [friendStatus, setFriendStatus] = useState(null);
   const [addingFriend, setAddingFriend] = useState(false);
-  const [userMap, setUserMap] = useState({}); // username -> username (for profile links)
+  const [userMap, setUserMap] = useState({}); // uid -> current username
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged((u) => setCurrentUser(u));
@@ -37,11 +53,20 @@ export default function Profile() {
 
   useEffect(() => {
     const fetchProfile = async () => {
+      // Find profile by username
       const snap = await getDocs(collection(db, "users"));
       const match = snap.docs.find((d) => d.data().username === username);
       if (!match) { setNotFound(true); return; }
       setProfile({ uid: match.id, ...match.data() });
       const uid = match.id;
+
+      // Build userMap: uid -> current username (from all users)
+      const map = {};
+      snap.docs.forEach(d => {
+        const data = d.data();
+        if (data.username) map[d.id] = data.username;
+      });
+      setUserMap(map);
 
       const saunaSnap = await getDocs(collection(db, "users", uid, "saunas"));
       setSaunas(saunaSnap.docs.map((d) => d.data()).sort((a, b) => b.date.localeCompare(a.date)));
@@ -54,15 +79,6 @@ export default function Profile() {
         return { uid: d.id, displayName: prof.username || prof.displayName || d.id, username: prof.username || "", avatarUrl: prof.avatarUrl || "" };
       }));
       setFriendsList(list);
-
-      // Build username map for clickable companions — index by both username and displayName
-      const map = {};
-      snap.docs.forEach(d => {
-        const data = d.data();
-        if (data.username) map[data.username] = data.username;
-        if (data.displayName) map[data.displayName] = data.username || data.displayName;
-      });
-      setUserMap(map);
     };
     fetchProfile();
   }, [username]);
@@ -147,8 +163,13 @@ export default function Profile() {
   lastYearAwaySaunas.forEach((s) => { if (s.location) awayCountLast[s.location] = (awayCountLast[s.location] || 0) + 1; });
   const awayTopLast = Object.entries(awayCountLast).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
+  // Companions TOP — resolve display labels via userMap
   const compCount = {};
-  thisYearSaunas.forEach((s) => (s.companions || []).forEach((c) => { compCount[c] = (compCount[c] || 0) + 1; }));
+  thisYearSaunas.forEach((s) => {
+    getCompanionEntries(s.companions, userMap).forEach(({ label }) => {
+      compCount[label] = (compCount[label] || 0) + 1;
+    });
+  });
   const compTop = Object.entries(compCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   const chartData = MONTHS.map((month, i) => {
@@ -194,7 +215,6 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Main tabs */}
       <div className="flex gap-2 mb-5">
         <button onClick={() => setActiveMainTab("stats")}
           className={`px-5 py-2 rounded-full text-sm font-medium transition ${activeMainTab === "stats" ? "bg-orange-500 text-white" : "bg-stone-800 text-stone-400 hover:bg-stone-700"}`}>
@@ -206,7 +226,6 @@ export default function Profile() {
         </button>
       </div>
 
-      {/* Friends tab */}
       {activeMainTab === "friends" && (
         <div className="bg-black/50 rounded-xl p-4">
           {friendsList.length === 0 ? (
@@ -229,7 +248,6 @@ export default function Profile() {
         </div>
       )}
 
-      {/* Stats tab */}
       {activeMainTab === "stats" && (<>
 
       {lastYearSaunas.length > 0 && (
@@ -387,16 +405,21 @@ export default function Profile() {
       {compTop.length > 0 && (
         <div className="bg-black/50 rounded-xl p-4 mb-4">
           <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">👥 Top companions ({thisYear})</div>
-          {compTop.map(([name, count]) => (
-            <div key={name} className="flex justify-between py-1 border-b border-stone-700 last:border-0">
-              {userMap[name] ? (
-                <Link to={`/${userMap[name]}`} className="text-orange-300 hover:text-orange-400 hover:underline">{name}</Link>
-              ) : (
-                <span>{name}</span>
-              )}
-              <span className="text-orange-400">{count}x</span>
-            </div>
-          ))}
+          {compTop.map(([label, count]) => {
+            // Find uid for this label to get username for link
+            const uid = Object.entries(userMap).find(([, u]) => u === label)?.[0];
+            const linkUsername = uid ? userMap[uid] : null;
+            return (
+              <div key={label} className="flex justify-between py-1 border-b border-stone-700 last:border-0">
+                {linkUsername ? (
+                  <Link to={`/${linkUsername}`} className="text-orange-300 hover:text-orange-400 hover:underline">{label}</Link>
+                ) : (
+                  <span>{label}</span>
+                )}
+                <span className="text-orange-400">{count}x</span>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -414,6 +437,7 @@ export default function Profile() {
           {tabSaunas.map((s, i) => {
             const b = getBeers(s);
             const w = getWaters(s);
+            const entries = getCompanionEntries(s.companions, userMap);
             return (
               <div key={i} className="bg-black/40 rounded-xl p-3 flex justify-between items-center">
                 <div>
@@ -422,11 +446,13 @@ export default function Profile() {
                     🌊 {s.steams}
                     {b > 0 && ` · 🍺 ${b}`}
                     {w > 0 && ` · 💧 ${w}`}
-                    {s.companions?.length > 0 && (
-                      <span> · 👥 {s.companions.map((c, i) => (
-                        <span key={c}>
-                          {i > 0 && ", "}
-                          {userMap[c] ? <Link to={`/${userMap[c]}`} className="text-orange-300 hover:underline">{c}</Link> : c}
+                    {entries.length > 0 && (
+                      <span> · 👥 {entries.map((e, j) => (
+                        <span key={j}>
+                          {j > 0 && ", "}
+                          {e.username
+                            ? <Link to={`/${e.username}`} className="text-orange-300 hover:underline">{e.label}</Link>
+                            : e.label}
                         </span>
                       ))}</span>
                     )}
