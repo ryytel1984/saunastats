@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
 import {
   collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc,
-  query, onSnapshot, serverTimestamp, orderBy
+  onSnapshot, serverTimestamp
 } from "firebase/firestore";
 import { useNavigate, Link } from "react-router-dom";
 
@@ -33,7 +33,7 @@ export default function Friends() {
   const [pendingReceived, setPendingReceived] = useState([]);
   const [sessionInvites, setSessionInvites] = useState([]);
   const [actionLoading, setActionLoading] = useState({});
-  const [confirmInvite, setConfirmInvite] = useState(null); // invite being edited
+  const [confirmInvite, setConfirmInvite] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,7 +44,6 @@ export default function Friends() {
     return unsub;
   }, []);
 
-  // Load friends
   useEffect(() => {
     if (!user) return;
     const unsub = onSnapshot(collection(db, "users", user.uid, "friends"), async (snap) => {
@@ -53,7 +52,12 @@ export default function Friends() {
         const data = d.data();
         const profSnap = await getDoc(doc(db, "users", d.id));
         const prof = profSnap.exists() ? profSnap.data() : {};
-        const entry = { uid: d.id, ...data, displayName: prof.username || prof.displayName || d.id, username: prof.username || "", avatarUrl: prof.avatarUrl || "" };
+        const entry = {
+          uid: d.id, ...data,
+          displayName: prof.username || prof.displayName || d.id,
+          username: prof.username || "",
+          avatarUrl: prof.avatarUrl || ""
+        };
         if (data.status === "accepted") accepted.push(entry);
         else if (data.status === "pending" && data.direction === "sent") sent.push(entry);
         else if (data.status === "pending" && data.direction === "received") received.push(entry);
@@ -65,19 +69,15 @@ export default function Friends() {
     return unsub;
   }, [user]);
 
-  // Load session invites
   useEffect(() => {
     if (!user) return;
-    const unsub = onSnapshot(
-      collection(db, "users", user.uid, "notifications"),
-      (snap) => {
-        const invites = snap.docs
-          .map(d => ({ id: d.id, ...d.data() }))
-          .filter(d => d.type === "session_invite" && d.status === "pending")
-          .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-        setSessionInvites(invites);
-      }
-    );
+    const unsub = onSnapshot(collection(db, "users", user.uid, "notifications"), (snap) => {
+      const invites = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(d => d.type === "session_invite" && d.status === "pending")
+        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      setSessionInvites(invites);
+    });
     return unsub;
   }, [user]);
 
@@ -120,10 +120,8 @@ export default function Friends() {
     setActionLoading((p) => ({ ...p, [targetUid]: false }));
   };
 
-  // Accept session invite — saves copy to user's own saunas with their own numbers
   const acceptSessionInvite = async (invite, editedValues) => {
     setActionLoading((p) => ({ ...p, [invite.id]: true }));
-    // Save to user's own saunas
     await addDoc(collection(db, "users", user.uid, "saunas"), {
       date: invite.date,
       type: invite.type_sauna || "away",
@@ -131,11 +129,10 @@ export default function Friends() {
       steams: editedValues.steams,
       beers: editedValues.beers,
       waters: editedValues.waters,
-      companions: [{ uid: invite.fromUid, username: invite.fromUsername }],
+      companions: [{ uid: invite.fromUid }], // only uid, no username
       confirmedFrom: invite.fromUid,
       createdAt: new Date().toISOString(),
     });
-    // Mark notification as accepted
     await updateDoc(doc(db, "users", user.uid, "notifications", invite.id), { status: "accepted" });
     setConfirmInvite(null);
     setActionLoading((p) => ({ ...p, [invite.id]: false }));
@@ -170,7 +167,6 @@ export default function Friends() {
         <Link to="/dashboard" className="text-stone-400 hover:text-white text-sm">← Dashboard</Link>
       </div>
 
-      {/* Session invites */}
       {sessionInvites.length > 0 && (
         <div className="bg-black/50 rounded-xl p-4 mb-4">
           <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">
@@ -197,8 +193,7 @@ export default function Friends() {
                       className="bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg text-xs font-medium transition">
                       Review
                     </button>
-                    <button
-                      onClick={() => declineSessionInvite(invite.id)}
+                    <button onClick={() => declineSessionInvite(invite.id)}
                       className="bg-stone-600 hover:bg-stone-500 px-3 py-1.5 rounded-lg text-xs font-medium transition">
                       ✕
                     </button>
@@ -210,7 +205,6 @@ export default function Friends() {
         </div>
       )}
 
-      {/* Search */}
       <div className="bg-black/50 rounded-xl p-4 mb-4">
         <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">🔍 Add a friend</div>
         <div className="flex gap-2">
@@ -261,7 +255,6 @@ export default function Friends() {
         })()}
       </div>
 
-      {/* Incoming friend requests */}
       {pendingReceived.length > 0 && (
         <div className="bg-black/50 rounded-xl p-4 mb-4">
           <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">
@@ -295,7 +288,6 @@ export default function Friends() {
         </div>
       )}
 
-      {/* Sent requests */}
       {pendingSent.length > 0 && (
         <div className="bg-black/50 rounded-xl p-4 mb-4">
           <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📤 Sent requests</div>
@@ -320,7 +312,6 @@ export default function Friends() {
         </div>
       )}
 
-      {/* Friends list */}
       <div className="bg-black/50 rounded-xl p-4">
         <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">✅ Friends ({friends.length})</div>
         {friends.length === 0 ? (
@@ -350,7 +341,6 @@ export default function Friends() {
         )}
       </div>
 
-      {/* Session invite confirm modal */}
       {confirmInvite && (
         <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setConfirmInvite(null); }}>
