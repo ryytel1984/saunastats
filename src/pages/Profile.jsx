@@ -164,7 +164,9 @@ export default function Profile() {
           <div className="text-stone-400">@{profile.username}</div>
         </div>
         <div className="ml-auto flex flex-col items-end gap-2">
-          <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="h-8 opacity-60" />
+          <Link to="/dashboard">
+            <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="h-8 opacity-60 hover:opacity-100 transition" />
+          </Link>
           {currentUser && currentUser.uid !== profile.uid && (
             <>
               {friendStatus === null && (
