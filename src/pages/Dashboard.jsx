@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { auth, db } from "../firebase";
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, getDoc, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, getDoc, query, orderBy, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -14,7 +14,7 @@ const emptyForm = {
   steams: 3,
   beers: 0,
   waters: 0,
-  companions: "",
+  companions: [],  // now array of {uid, username, avatarUrl} | {text} objects
 };
 
 function getBeers(s) {
@@ -26,6 +26,12 @@ function getWaters(s) {
   if (s.waters !== undefined) return s.waters || 0;
   if (s.drink === "water") return s.drinks || 0;
   return 0;
+}
+
+// Get display names from companions array (supports both old string[] and new object[])
+function getCompanionNames(companions) {
+  if (!companions || companions.length === 0) return [];
+  return companions.map(c => typeof c === "string" ? c : (c.username || c.text || c.uid));
 }
 
 function DrinkRow({ emoji, label, value, onChange, color }) {
@@ -73,8 +79,10 @@ function AutocompleteInput({ value, onChange, suggestions, placeholder, classNam
   );
 }
 
-function FormFields({ f, setF, locationSuggestions, companionSuggestions, friendsList }) {
+// companions is now array of {uid, username, avatarUrl} for friends, or strings for manual
+function FormFields({ f, setF, locationSuggestions, friendsList }) {
   const [compOpen, setCompOpen] = useState(false);
+  const [manualInput, setManualInput] = useState("");
   const compRef = useRef(null);
 
   useEffect(() => {
@@ -83,14 +91,34 @@ function FormFields({ f, setF, locationSuggestions, companionSuggestions, friend
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const currentNames = f.companions ? f.companions.split(",").map(s => s.trim()).filter(Boolean) : [];
+  const companions = f.companions || [];
+  const selectedUids = companions.filter(c => c.uid).map(c => c.uid);
+
   const toggleFriend = (friend) => {
-    const name = friend.displayName;
-    const already = currentNames.includes(name);
-    const updated = already ? currentNames.filter(n => n !== name) : [...currentNames, name];
-    setF({ ...f, companions: updated.join(", ") });
+    const already = selectedUids.includes(friend.uid);
+    if (already) {
+      setF({ ...f, companions: companions.filter(c => c.uid !== friend.uid) });
+    } else {
+      setF({ ...f, companions: [...companions, { uid: friend.uid, username: friend.displayName, avatarUrl: friend.avatarUrl }] });
+    }
   };
-  const isSelected = (name) => currentNames.includes(name);
+
+  const addManual = () => {
+    const name = manualInput.trim();
+    if (!name) return;
+    const alreadyText = companions.find(c => !c.uid && c.text === name);
+    const alreadyFriend = companions.find(c => c.username === name);
+    if (!alreadyText && !alreadyFriend) {
+      setF({ ...f, companions: [...companions, { text: name }] });
+    }
+    setManualInput("");
+  };
+
+  const removeCompanion = (idx) => {
+    setF({ ...f, companions: companions.filter((_, i) => i !== idx) });
+  };
+
+  const displayNames = companions.map(c => c.uid ? c.username : c.text);
 
   return (
     <div className="space-y-4">
@@ -130,33 +158,59 @@ function FormFields({ f, setF, locationSuggestions, companionSuggestions, friend
       </div>
       <DrinkRow emoji="🍺" label="Beers" value={f.beers} onChange={(n) => setF({ ...f, beers: n })} color="bg-orange-500 text-white" />
       <DrinkRow emoji="💧" label="Waters" value={f.waters} onChange={(n) => setF({ ...f, waters: n })} color="bg-sky-500 text-white" />
+
       <div>
         <label className="text-stone-400 text-xs">Companions</label>
+
+        {/* Selected companions chips */}
+        {companions.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2 mb-2">
+            {companions.map((c, i) => (
+              <div key={i} className="flex items-center gap-1 bg-stone-600 rounded-full px-2 py-1 text-xs">
+                {c.avatarUrl && <img src={c.avatarUrl} className="w-4 h-4 rounded-full object-cover" alt="" />}
+                <span>{c.uid ? c.username : c.text}</span>
+                <button onClick={() => removeCompanion(i)} className="text-stone-400 hover:text-white ml-1">✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Friends dropdown */}
         {friendsList && friendsList.length > 0 && (
           <div className="relative mt-1" ref={compRef}>
             <button type="button" onClick={() => setCompOpen(!compOpen)}
               className="w-full bg-stone-700 rounded-lg px-3 py-2 text-left text-sm text-stone-300 flex justify-between items-center">
-              <span>{currentNames.length > 0 ? currentNames.join(", ") : "Select friends..."}</span>
+              <span className="text-stone-500">Add from friends...</span>
               <span className="text-stone-500">{compOpen ? "▲" : "▼"}</span>
             </button>
             {compOpen && (
               <div className="absolute z-10 w-full bg-stone-700 rounded-lg mt-1 shadow-lg overflow-hidden">
-                {friendsList.map((friend) => (
-                  <div key={friend.uid} onMouseDown={() => toggleFriend(friend)}
-                    className={`px-3 py-2 cursor-pointer text-sm flex items-center gap-2 hover:bg-stone-600 ${isSelected(friend.displayName) ? "bg-stone-600" : ""}`}>
-                    <img src={friend.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.displayName)}`}
-                      className="w-6 h-6 rounded-full object-cover" alt="" />
-                    <span className="text-white">{friend.displayName}</span>
-                    {isSelected(friend.displayName) && <span className="ml-auto text-orange-400 text-xs">✓</span>}
-                  </div>
-                ))}
+                {friendsList.map((friend) => {
+                  const selected = selectedUids.includes(friend.uid);
+                  return (
+                    <div key={friend.uid} onMouseDown={() => toggleFriend(friend)}
+                      className={`px-3 py-2 cursor-pointer text-sm flex items-center gap-2 hover:bg-stone-600 ${selected ? "bg-stone-600" : ""}`}>
+                      <img src={friend.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.displayName)}`}
+                        className="w-6 h-6 rounded-full object-cover" alt="" />
+                      <span className="text-white">{friend.displayName}</span>
+                      {selected && <span className="ml-auto text-orange-400 text-xs">✓</span>}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
         )}
-        <AutocompleteInput value={f.companions} onChange={(val) => setF({ ...f, companions: val })}
-          suggestions={companionSuggestions} placeholder="or type manually (comma separated)"
-          className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-2 text-white text-sm" />
+
+        {/* Manual input */}
+        <div className="flex gap-2 mt-2">
+          <input type="text" value={manualInput}
+            onChange={(e) => setManualInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addManual()}
+            placeholder="Add by name..."
+            className="flex-1 bg-stone-700 rounded-lg px-3 py-2 text-white text-sm" />
+          <button onClick={addManual} className="bg-stone-600 hover:bg-stone-500 px-3 rounded-lg text-sm transition">+</button>
+        </div>
       </div>
     </div>
   );
@@ -171,7 +225,7 @@ export default function Dashboard() {
   const [editForm, setEditForm] = useState(null);
   const [logTab, setLogTab] = useState(null);
   const [friendsList, setFriendsList] = useState([]);
-  const [pendingCount, setPendingCount] = useState(0);
+  const [notifCount, setNotifCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -196,39 +250,74 @@ export default function Dashboard() {
     const loadFriends = async () => {
       const snap = await getDocs(collection(db, "users", user.uid, "friends"));
       const accepted = snap.docs.filter(d => d.data().status === "accepted");
-      const pending = snap.docs.filter(d => d.data().status === "pending" && d.data().direction === "received");
-      setPendingCount(pending.length);
+      const pendingReceived = snap.docs.filter(d => d.data().status === "pending" && d.data().direction === "received");
       const list = await Promise.all(accepted.map(async (d) => {
         const profSnap = await getDoc(doc(db, "users", d.id));
         const prof = profSnap.exists() ? profSnap.data() : {};
-        return { uid: d.id, displayName: prof.displayName || d.id, avatarUrl: prof.avatarUrl || "" };
+        return { uid: d.id, displayName: prof.username || prof.displayName || d.id, avatarUrl: prof.avatarUrl || "" };
       }));
       setFriendsList(list);
+      // Count notifications: pending friend requests + pending session invites
+      const notifSnap = await getDocs(query(collection(db, "users", user.uid, "notifications")));
+      const pendingInvites = notifSnap.docs.filter(d => d.data().status === "pending").length;
+      setNotifCount(pendingReceived.length + pendingInvites);
     };
     loadFriends();
   }, [user]);
 
   const locationSuggestions = [...new Set(saunas.filter(s => s.location).map(s => s.location))];
-  const companionSuggestions = [...new Set(saunas.flatMap(s => s.companions || []))];
+
+  // Send session invite notifications to UID-based companions
+  const sendSessionInvites = async (sessionId, sessionData, companions) => {
+    const uidCompanions = companions.filter(c => c.uid);
+    for (const c of uidCompanions) {
+      await addDoc(collection(db, "users", c.uid, "notifications"), {
+        type: "session_invite",
+        fromUid: user.uid,
+        fromUsername: (await getDoc(doc(db, "users", user.uid))).data()?.username || user.uid,
+        sessionId,
+        date: sessionData.date,
+        location: sessionData.location || "",
+        type_sauna: sessionData.type,
+        steams: sessionData.steams,
+        beers: sessionData.beers,
+        waters: sessionData.waters,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+    }
+  };
 
   const handleAdd = async () => {
     if (!form.date) return;
-    await addDoc(collection(db, "users", user.uid, "saunas"), {
+    const companions = form.companions || [];
+    // Save companions as array of {uid, username} for friends, or string for manual
+    const companionsToSave = companions.map(c => c.uid ? { uid: c.uid, username: c.username } : c.text);
+    const sessionData = {
       date: form.date,
       type: form.type,
       location: form.location,
       steams: Number(form.steams),
       beers: Number(form.beers),
       waters: Number(form.waters),
-      companions: form.companions.split(",").map((s) => s.trim()).filter(Boolean),
+      companions: companionsToSave,
       createdAt: new Date().toISOString(),
-    });
+    };
+    const docRef = await addDoc(collection(db, "users", user.uid, "saunas"), sessionData);
+    await sendSessionInvites(docRef.id, sessionData, companions);
     setForm(emptyForm);
     setShowForm(false);
   };
 
   const openEdit = (s) => {
     setEditSession(s);
+    // Convert saved companions back to form format
+    const companions = (s.companions || []).map(c => {
+      if (typeof c === "string") return { text: c };
+      if (c.uid) return { uid: c.uid, username: c.username || c.uid, avatarUrl: "" };
+      if (c.text) return c;
+      return { text: String(c) };
+    });
     setEditForm({
       date: s.date,
       type: s.type,
@@ -236,12 +325,14 @@ export default function Dashboard() {
       steams: s.steams || 3,
       beers: getBeers(s),
       waters: getWaters(s),
-      companions: (s.companions || []).join(", "),
+      companions,
     });
   };
 
   const handleSaveEdit = async () => {
     if (!editSession) return;
+    const companions = editForm.companions || [];
+    const companionsToSave = companions.map(c => c.uid ? { uid: c.uid, username: c.username } : c.text);
     await updateDoc(doc(db, "users", user.uid, "saunas", editSession.id), {
       date: editForm.date,
       type: editForm.type,
@@ -249,7 +340,7 @@ export default function Dashboard() {
       steams: Number(editForm.steams),
       beers: Number(editForm.beers),
       waters: Number(editForm.waters),
-      companions: editForm.companions.split(",").map((s) => s.trim()).filter(Boolean),
+      companions: companionsToSave,
     });
     setEditSession(null);
     setEditForm(null);
@@ -306,7 +397,7 @@ export default function Dashboard() {
   const awayTopLast = Object.entries(awayCountLast).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   const compCount = {};
-  thisYearSaunas.forEach((s) => (s.companions || []).forEach((c) => { compCount[c] = (compCount[c] || 0) + 1; }));
+  thisYearSaunas.forEach((s) => getCompanionNames(s.companions).forEach((c) => { compCount[c] = (compCount[c] || 0) + 1; }));
   const compTop = Object.entries(compCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   const chartData = MONTHS.map((month, i) => {
@@ -325,13 +416,14 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen text-white" style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
       <div className="max-w-2xl mx-auto p-4">
+
       <div className="flex justify-between items-center mb-6">
         <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="h-11" />
         <div className="flex items-center gap-3 text-sm text-stone-400">
           <Link to="/leaderboard" className="hover:text-white">Leaderboard</Link>
           <Link to="/friends" className="hover:text-white relative">
             Friends
-            {pendingCount > 0 && (
+            {notifCount > 0 && (
               <span className="absolute -top-1 -right-2 w-2 h-2 bg-red-500 rounded-full" />
             )}
           </Link>
@@ -372,14 +464,14 @@ export default function Dashboard() {
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-12 text-sm text-stone-300">Home</div>
-            <div className="flex-1 bg-stone-700 rounded-full h-3">
+            <div className="flex-1 bg-black/30 rounded-full h-3">
               <div className="bg-orange-500 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(homeSaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
             </div>
             <div className="w-6 text-right font-bold text-orange-400 text-sm">{homeSaunas.length}</div>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-12 text-sm text-stone-300">Away</div>
-            <div className="flex-1 bg-stone-700 rounded-full h-3">
+            <div className="flex-1 bg-black/30 rounded-full h-3">
               <div className="bg-sky-400 h-3 rounded-full transition-all" style={{ width: thisYearSaunas.length ? `${(awaySaunas.length / thisYearSaunas.length) * 100}%` : "0%" }} />
             </div>
             <div className="w-6 text-right font-bold text-sky-400 text-sm">{awaySaunas.length}</div>
@@ -397,7 +489,7 @@ export default function Dashboard() {
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-12 text-sm text-stone-300">🍺 Beer</div>
-            <div className="flex-1 bg-stone-700 rounded-full h-3">
+            <div className="flex-1 bg-black/30 rounded-full h-3">
               <div className="bg-orange-500 h-3 rounded-full transition-all"
                 style={{ width: (totalBeers + totalWaters) > 0 ? `${(totalBeers / (totalBeers + totalWaters)) * 100}%` : "0%" }} />
             </div>
@@ -405,7 +497,7 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-3">
             <div className="w-12 text-sm text-stone-300">💧 Water</div>
-            <div className="flex-1 bg-stone-700 rounded-full h-3">
+            <div className="flex-1 bg-black/30 rounded-full h-3">
               <div className="bg-sky-400 h-3 rounded-full transition-all"
                 style={{ width: (totalBeers + totalWaters) > 0 ? `${(totalWaters / (totalBeers + totalWaters)) * 100}%` : "0%" }} />
             </div>
@@ -511,7 +603,7 @@ export default function Dashboard() {
 
       {showForm && (
         <div className="bg-black/50 rounded-xl p-5 mb-4">
-          <FormFields f={form} setF={setForm} locationSuggestions={locationSuggestions} companionSuggestions={companionSuggestions} friendsList={friendsList} />
+          <FormFields f={form} setF={setForm} locationSuggestions={locationSuggestions} friendsList={friendsList} />
           <button onClick={handleAdd}
             className="w-full bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition mt-4">
             Save 🧖
@@ -533,16 +625,17 @@ export default function Dashboard() {
           {tabSaunas.map((s) => {
             const b = getBeers(s);
             const w = getWaters(s);
+            const names = getCompanionNames(s.companions);
             return (
               <div key={s.id} onClick={() => openEdit(s)}
-                className="bg-black/40 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:bg-stone-600 transition">
+                className="bg-black/40 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:bg-black/60 transition">
                 <div>
                   <div className="font-semibold text-sm">{s.date} · {s.location || (s.type === "home" ? "Home" : "Away")}</div>
                   <div className="text-stone-400 text-xs mt-1">
                     🌊 {s.steams}
                     {b > 0 && ` · 🍺 ${b}`}
                     {w > 0 && ` · 💧 ${w}`}
-                    {s.companions?.length > 0 && ` · 👥 ${s.companions.join(", ")}`}
+                    {names.length > 0 && ` · 👥 ${names.join(", ")}`}
                   </div>
                 </div>
                 <div className="text-stone-500 text-sm ml-2">{s.type === "home" ? "🏠" : "✈️"}</div>
@@ -561,7 +654,7 @@ export default function Dashboard() {
               <button onClick={() => { setEditSession(null); setEditForm(null); }}
                 className="text-stone-400 hover:text-white text-xl">✕</button>
             </div>
-            <FormFields f={editForm} setF={setEditForm} locationSuggestions={locationSuggestions} companionSuggestions={companionSuggestions} friendsList={friendsList} />
+            <FormFields f={editForm} setF={setEditForm} locationSuggestions={locationSuggestions} friendsList={friendsList} />
             <div className="flex gap-3 mt-4">
               <button onClick={handleDelete}
                 className="flex-1 bg-red-600 hover:bg-red-700 font-semibold py-3 rounded-xl transition text-sm">
