@@ -262,9 +262,9 @@ export default function Profile() {
         <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📅 Pace & Steams</div>
         <div className="flex justify-around">
           <div className="text-center">
-            <div className="text-2xl font-bold text-orange-400">{tempoThisYear}</div>
-            <div className="text-stone-500 text-xs">saunas/week</div>
-            <div className="text-stone-600 text-xs">{thisYear} avg</div>
+            <div className="text-2xl font-bold text-orange-400">{totalSteams}</div>
+            <div className="text-stone-500 text-xs">total steams</div>
+            <div className="text-stone-600 text-xs">{thisYear}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-400">{avgSteams}</div>
