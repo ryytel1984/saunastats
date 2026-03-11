@@ -17,76 +17,73 @@ function getWaters(s) {
 }
 
 export default function Admin() {
-  const [ready, setReady] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [authUid, setAuthUid] = useState(undefined); // undefined = still loading
+  const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
   const [totals, setTotals] = useState({ sessions: 0, steams: 0, beers: 0, waters: 0 });
   const [monthlyGrowth, setMonthlyGrowth] = useState([]);
 
+  // Step 1: wait for auth
   useEffect(() => {
     const unsub = auth.onAuthStateChanged((u) => {
-      if (u && u.uid === ADMIN_UID) {
-        setReady(true);
-        loadData();
-      } else if (u) {
-        // logged in but not admin
-        setReady(true);
-      } else {
-        // not logged in — wait a bit before deciding
-        setTimeout(() => setReady(true), 1500);
-      }
+      setAuthUid(u ? u.uid : null);
     });
     return unsub;
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
-    const usersSnap = await getDocs(collection(db, "users"));
-    const userData = await Promise.all(
-      usersSnap.docs.map(async (d) => {
-        const prof = d.data();
-        const saunaSnap = await getDocs(collection(db, "users", d.id, "saunas"));
-        const saunas = saunaSnap.docs.map(s => s.data());
-        const thisYear = new Date().getFullYear().toString();
-        return {
-          uid: d.id,
-          displayName: prof.displayName || prof.username || d.id,
-          username: prof.username || "",
-          avatarUrl: prof.avatarUrl || "",
-          isPublic: prof.isPublic !== false,
-          sessions: saunas.length,
-          sessionsThisYear: saunas.filter(s => s.date?.startsWith(thisYear)).length,
-          steams: saunas.reduce((a, s) => a + (s.steams || 0), 0),
-          beers: saunas.reduce((a, s) => a + getBeers(s), 0),
-          waters: saunas.reduce((a, s) => a + getWaters(s), 0),
-          lastSession: saunas.length ? [...saunas].sort((a, b) => b.date?.localeCompare(a.date))[0].date : null,
-          allSaunas: saunas,
-        };
-      })
-    );
+  // Step 2: once auth known and is admin, load data
+  useEffect(() => {
+    if (authUid !== ADMIN_UID) return;
+    const load = async () => {
+      setLoading(true);
+      const usersSnap = await getDocs(collection(db, "users"));
+      const userData = await Promise.all(
+        usersSnap.docs.map(async (d) => {
+          const prof = d.data();
+          const saunaSnap = await getDocs(collection(db, "users", d.id, "saunas"));
+          const saunas = saunaSnap.docs.map(s => s.data());
+          const thisYear = new Date().getFullYear().toString();
+          return {
+            uid: d.id,
+            displayName: prof.displayName || prof.username || d.id,
+            username: prof.username || "",
+            avatarUrl: prof.avatarUrl || "",
+            isPublic: prof.isPublic !== false,
+            sessions: saunas.length,
+            sessionsThisYear: saunas.filter(s => s.date?.startsWith(thisYear)).length,
+            steams: saunas.reduce((a, s) => a + (s.steams || 0), 0),
+            beers: saunas.reduce((a, s) => a + getBeers(s), 0),
+            waters: saunas.reduce((a, s) => a + getWaters(s), 0),
+            lastSession: saunas.length ? [...saunas].sort((a, b) => b.date?.localeCompare(a.date))[0].date : null,
+            allSaunas: saunas,
+          };
+        })
+      );
 
-    setTotals(userData.reduce((acc, u) => ({
-      sessions: acc.sessions + u.sessions,
-      steams: acc.steams + u.steams,
-      beers: acc.beers + u.beers,
-      waters: acc.waters + u.waters,
-    }), { sessions: 0, steams: 0, beers: 0, waters: 0 }));
+      setTotals(userData.reduce((acc, u) => ({
+        sessions: acc.sessions + u.sessions,
+        steams: acc.steams + u.steams,
+        beers: acc.beers + u.beers,
+        waters: acc.waters + u.waters,
+      }), { sessions: 0, steams: 0, beers: 0, waters: 0 }));
 
-    const now = new Date();
-    const months = [];
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      const label = d.toLocaleString("en", { month: "short", year: "2-digit" });
-      const count = userData.reduce((acc, u) =>
-        acc + u.allSaunas.filter(s => s.date?.startsWith(key)).length, 0);
-      months.push({ key, label, count });
-    }
-    setMonthlyGrowth(months);
-    userData.sort((a, b) => b.sessions - a.sessions);
-    setUsers(userData);
-    setLoading(false);
-  };
+      const now = new Date();
+      const months = [];
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const label = d.toLocaleString("en", { month: "short", year: "2-digit" });
+        const count = userData.reduce((acc, u) =>
+          acc + u.allSaunas.filter(s => s.date?.startsWith(key)).length, 0);
+        months.push({ key, label, count });
+      }
+      setMonthlyGrowth(months);
+      userData.sort((a, b) => b.sessions - a.sessions);
+      setUsers(userData);
+      setLoading(false);
+    };
+    load();
+  }, [authUid]);
 
   const handleDelete = async (u) => {
     if (!window.confirm(`Delete ${u.displayName} and all their data? This cannot be undone.`)) return;
@@ -100,30 +97,39 @@ export default function Admin() {
     setUsers(prev => prev.filter(x => x.uid !== u.uid));
   };
 
-  if (!ready || loading) return (
-    <div className="min-h-screen text-white flex items-center justify-center"
-      style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
+  const bg = { background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" };
+
+  // Auth still loading
+  if (authUid === undefined) return (
+    <div className="min-h-screen text-white flex items-center justify-center" style={bg}>
       <div className="text-stone-400">Loading...</div>
     </div>
   );
 
-  const currentUid = auth.currentUser?.uid;
-  if (currentUid !== ADMIN_UID) return (
-    <div className="min-h-screen text-white flex items-center justify-center"
-      style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
+  // Not admin
+  if (authUid !== ADMIN_UID) return (
+    <div className="min-h-screen text-white flex items-center justify-center" style={bg}>
       <div className="text-center">
         <div className="text-4xl mb-4">🔒</div>
         <div className="text-stone-400">Access denied</div>
-        <Link to="/dashboard" className="text-orange-400 text-sm mt-3 block hover:underline">← Dashboard</Link>
+        <Link to={authUid ? "/dashboard" : "/login"} className="text-orange-400 text-sm mt-3 block hover:underline">
+          {authUid ? "← Dashboard" : "← Login"}
+        </Link>
       </div>
+    </div>
+  );
+
+  // Data loading
+  if (loading) return (
+    <div className="min-h-screen text-white flex items-center justify-center" style={bg}>
+      <div className="text-stone-400">Loading data...</div>
     </div>
   );
 
   const maxMonthCount = Math.max(1, ...monthlyGrowth.map(m => m.count));
 
   return (
-    <div className="min-h-screen text-white p-4 max-w-2xl mx-auto"
-      style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
+    <div className="min-h-screen text-white p-4 max-w-2xl mx-auto" style={bg}>
 
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">⚙️ Admin</h1>
