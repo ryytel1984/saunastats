@@ -122,10 +122,17 @@ export default function Friends() {
 
   const acceptSessionInvite = async (invite, editedValues) => {
     setActionLoading((p) => ({ ...p, [invite.id]: true }));
+    // If sender's sauna was "home", receiver sees it as away with sender's name as location
+    const isHome = invite.type_sauna === "home";
+    const resolvedType = isHome ? "away" : (invite.type_sauna || "away");
+    const resolvedLocation = isHome
+      ? `${invite.fromUsername}'s Sauna`
+      : (invite.location || "");
+
     await addDoc(collection(db, "users", user.uid, "saunas"), {
       date: invite.date,
-      type: invite.type_sauna || "away",
-      location: invite.location || "",
+      type: resolvedType,
+      location: resolvedLocation,
       steams: editedValues.steams,
       beers: editedValues.beers,
       waters: editedValues.waters,
