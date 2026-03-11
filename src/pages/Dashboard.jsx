@@ -382,6 +382,27 @@ export default function Dashboard() {
     setEditForm(null);
   };
 
+
+  const handleMerge = async (targetSession) => {
+    if (!editSession) return;
+    const existingUids = (editSession.companions || []).filter(c => c.uid).map(c => c.uid);
+    const existingTexts = (editSession.companions || []).filter(c => c.text).map(c => c.text);
+    const newCompanions = [
+      ...(editSession.companions || []),
+      ...(targetSession.companions || []).filter(c => {
+        if (c.uid) return !existingUids.includes(c.uid);
+        if (c.text) return !existingTexts.includes(c.text);
+        return false;
+      }),
+    ];
+    await updateDoc(doc(db, "users", user.uid, "saunas", editSession.id), {
+      companions: newCompanions,
+    });
+    await deleteDoc(doc(db, "users", user.uid, "saunas", targetSession.id));
+    setEditSession(null);
+    setEditForm(null);
+  };
+
   const thisYear = new Date().getFullYear().toString();
   const lastYear = (new Date().getFullYear() - 1).toString();
   const todayMMDD = new Date().toISOString().slice(5, 10);
@@ -694,29 +715,47 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {editSession && editForm && (
-        <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) { setEditSession(null); setEditForm(null); } }}>
-          <div className="bg-stone-800 rounded-2xl p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold">Edit session</h2>
-              <button onClick={() => { setEditSession(null); setEditForm(null); }}
-                className="text-stone-400 hover:text-white text-xl">✕</button>
-            </div>
-            <FormFields f={editForm} setF={setEditForm} locationSuggestions={locationSuggestions} friendsList={friendsList} />
-            <div className="flex gap-3 mt-4">
-              <button onClick={handleDelete}
-                className="flex-1 bg-red-600 hover:bg-red-700 font-semibold py-3 rounded-xl transition text-sm">
-                🗑 Delete
-              </button>
-              <button onClick={handleSaveEdit}
-                className="flex-grow bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition">
-                Save ✓
-              </button>
+      {editSession && editForm && (() => {
+        const sameDaySessions = saunas.filter(s => s.date === editSession.date && s.id !== editSession.id);
+        return (
+          <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-50 p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) { setEditSession(null); setEditForm(null); } }}>
+            <div className="bg-stone-800 rounded-2xl p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold">Edit session</h2>
+                <button onClick={() => { setEditSession(null); setEditForm(null); }}
+                  className="text-stone-400 hover:text-white text-xl">✕</button>
+              </div>
+              <FormFields f={editForm} setF={setEditForm} locationSuggestions={locationSuggestions} friendsList={friendsList} />
+
+              {sameDaySessions.length > 0 && (
+                <div className="mt-4 border-t border-stone-700 pt-4">
+                  <div className="text-stone-400 text-xs mb-2 uppercase tracking-wide">🔀 Merge with same day session</div>
+                  {sameDaySessions.map(s => (
+                    <button key={s.id}
+                      onClick={() => { if (window.confirm("Merge? Your stats stay, companions combined.")) handleMerge(s); }}
+                      className="w-full text-left bg-stone-700 hover:bg-stone-600 rounded-xl px-3 py-2 text-sm mb-2 transition">
+                      <span className="font-medium">{s.location || (s.type === "home" ? "🏠 Home" : "✈️ Away")}</span>
+                      <span className="text-stone-400 ml-2">🌊 {s.steams}{getBeers(s) > 0 ? ` · 🍺 ${getBeers(s)}` : ""}{getWaters(s) > 0 ? ` · 💧 ${getWaters(s)}` : ""}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-4">
+                <button onClick={handleDelete}
+                  className="flex-1 bg-red-600 hover:bg-red-700 font-semibold py-3 rounded-xl transition text-sm">
+                  🗑 Delete
+                </button>
+                <button onClick={handleSaveEdit}
+                  className="flex-grow bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition">
+                  Save ✓
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
     </div>
   );
