@@ -344,15 +344,32 @@ export default function Dashboard() {
     if (!editSession) return;
     const companions = editForm.companions || [];
     const companionsToSave = companions.map(c => c.uid ? { uid: c.uid } : { text: c.text });
-    await updateDoc(doc(db, "users", user.uid, "saunas", editSession.id), {
+
+    // Leia uued sõbrad, kes polnud eelmises salvestuses
+    const prevUids = (editSession.companions || [])
+      .filter(c => c.uid)
+      .map(c => c.uid);
+    const newCompanions = companions.filter(c => c.uid && !prevUids.includes(c.uid));
+
+    const sessionData = {
       date: editForm.date,
       type: editForm.type,
       location: editForm.location,
       steams: Number(editForm.steams),
       beers: Number(editForm.beers),
       waters: Number(editForm.waters),
+    };
+
+    await updateDoc(doc(db, "users", user.uid, "saunas", editSession.id), {
+      ...sessionData,
       companions: companionsToSave,
     });
+
+    // Saada teavitus ainult uutele sõpradele
+    if (newCompanions.length > 0) {
+      await sendSessionInvites(editSession.id, sessionData, newCompanions);
+    }
+
     setEditSession(null);
     setEditForm(null);
   };
