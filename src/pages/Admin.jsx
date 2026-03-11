@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { auth, db } from "../firebase";
 import { collection, getDocs, deleteDoc, doc, writeBatch } from "firebase/firestore";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const ADMIN_UID = "1tRQDUGWP6MU5BLBgL1XoOE5OzP2";
 
@@ -22,20 +22,21 @@ export default function Admin() {
   const [users, setUsers] = useState([]);
   const [totals, setTotals] = useState({ sessions: 0, steams: 0, beers: 0, waters: 0 });
   const [monthlyGrowth, setMonthlyGrowth] = useState([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    auth.authStateReady().then(() => {
-      const u = auth.currentUser;
-      if (!u) {
-        navigate("/login");
-      } else if (u.uid !== ADMIN_UID) {
-        navigate("/dashboard");
-      } else {
+    const unsub = auth.onAuthStateChanged((u) => {
+      if (u && u.uid === ADMIN_UID) {
         setReady(true);
         loadData();
+      } else if (u) {
+        // logged in but not admin
+        setReady(true);
+      } else {
+        // not logged in — wait a bit before deciding
+        setTimeout(() => setReady(true), 1500);
       }
     });
+    return unsub;
   }, []);
 
   const loadData = async () => {
@@ -103,6 +104,18 @@ export default function Admin() {
     <div className="min-h-screen text-white flex items-center justify-center"
       style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
       <div className="text-stone-400">Loading...</div>
+    </div>
+  );
+
+  const currentUid = auth.currentUser?.uid;
+  if (currentUid !== ADMIN_UID) return (
+    <div className="min-h-screen text-white flex items-center justify-center"
+      style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
+      <div className="text-center">
+        <div className="text-4xl mb-4">🔒</div>
+        <div className="text-stone-400">Access denied</div>
+        <Link to="/dashboard" className="text-orange-400 text-sm mt-3 block hover:underline">← Dashboard</Link>
+      </div>
     </div>
   );
 
