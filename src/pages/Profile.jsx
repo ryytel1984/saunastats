@@ -51,15 +51,16 @@ export default function Profile() {
       const list = await Promise.all(accepted.map(async (d) => {
         const profSnap = await getDoc(doc(db, "users", d.id));
         const prof = profSnap.exists() ? profSnap.data() : {};
-        return { uid: d.id, displayName: prof.displayName || d.id, username: prof.username || "", avatarUrl: prof.avatarUrl || "" };
+        return { uid: d.id, displayName: prof.username || prof.displayName || d.id, username: prof.username || "", avatarUrl: prof.avatarUrl || "" };
       }));
       setFriendsList(list);
 
-      // Build username map for clickable companions
+      // Build username map for clickable companions — index by both username and displayName
       const map = {};
       snap.docs.forEach(d => {
-        const u = d.data().username;
-        if (u) map[u] = u;
+        const data = d.data();
+        if (data.username) map[data.username] = data.username;
+        if (data.displayName) map[data.displayName] = data.username || data.displayName;
       });
       setUserMap(map);
     };
@@ -389,7 +390,7 @@ export default function Profile() {
           {compTop.map(([name, count]) => (
             <div key={name} className="flex justify-between py-1 border-b border-stone-700 last:border-0">
               {userMap[name] ? (
-                <Link to={`/${name}`} className="text-orange-300 hover:text-orange-400 hover:underline">{name}</Link>
+                <Link to={`/${userMap[name]}`} className="text-orange-300 hover:text-orange-400 hover:underline">{name}</Link>
               ) : (
                 <span>{name}</span>
               )}
@@ -425,7 +426,7 @@ export default function Profile() {
                       <span> · 👥 {s.companions.map((c, i) => (
                         <span key={c}>
                           {i > 0 && ", "}
-                          {userMap[c] ? <Link to={`/${c}`} className="text-orange-300 hover:underline">{c}</Link> : c}
+                          {userMap[c] ? <Link to={`/${userMap[c]}`} className="text-orange-300 hover:underline">{c}</Link> : c}
                         </span>
                       ))}</span>
                     )}
