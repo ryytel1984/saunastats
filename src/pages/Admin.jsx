@@ -3,7 +3,7 @@ import { auth, db } from "../firebase";
 import { collection, getDocs, deleteDoc, doc, writeBatch } from "firebase/firestore";
 import { Link } from "react-router-dom";
 
-const ADMIN_UID = "1tRQDUGWP6MU5BLBgL1XoOE5OzP2";
+const ADMIN_UID = "1tRQDUGWP6MU5BLBgL1Xo0E50zP2";
 
 function getBeers(s) {
   if (s.beers !== undefined) return s.beers || 0;
