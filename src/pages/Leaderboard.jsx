@@ -1,46 +1,71 @@
 import { useEffect, useState } from "react";
-import { db, auth } from "../firebase";
+import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 export default function Leaderboard() {
   const [users, setUsers] = useState([]);
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUsers = async () => {
       const snap = await getDocs(collection(db, "users"));
       const data = await Promise.all(
-        snap.docs.map(async (d) => {
-          const profile = d.data();
-          const saunaSnap = await getDocs(collection(db, "users", d.id, "saunas"));
-          const saunas = saunaSnap.docs.map((s) => s.data());
-          return {
-            uid: d.id,
-            ...profile,
-            sessions: saunas.length,
-            steams: saunas.reduce((a, s) => a + (s.steams || 0), 0),
-            beers: saunas.reduce((a, s) => a + (s.beers || 0), 0),
-          };
-        })
+        snap.docs
+          .filter(d => d.data().username && d.data().isPublic !== false)
+          .map(async (d) => {
+            const profile = d.data();
+            const saunaSnap = await getDocs(collection(db, "users", d.id, "saunas"));
+            const saunas = saunaSnap.docs.map((s) => s.data());
+            const thisYear = new Date().getFullYear().toString();
+            const thisYearSaunas = saunas.filter(s => s.date?.startsWith(thisYear));
+            return {
+              uid: d.id,
+              displayName: profile.displayName || profile.username,
+              username: profile.username,
+              avatarUrl: profile.avatarUrl || "",
+              sessions: saunas.length,
+              sessionsThisYear: thisYearSaunas.length,
+              steams: saunas.reduce((a, s) => a + (s.steams || 0), 0),
+              beers: saunas.reduce((a, s) => {
+                if (s.beers !== undefined) return a + (s.beers || 0);
+                if (s.drink === "beer") return a + (s.drinks || 0);
+                return a;
+              }, 0),
+            };
+          })
       );
-      data.sort((a, b) => b.sessions - a.sessions);
+      data.sort((a, b) => b.sessionsThisYear - a.sessionsThisYear);
       setUsers(data);
+      setLoading(false);
     };
     fetchUsers();
   }, []);
 
+  const thisYear = new Date().getFullYear();
+
   return (
-    <div className="min-h-screen bg-stone-900 text-white p-6 max-w-2xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">🏆 Leaderboard</h1>
-        <Link to="/dashboard" className="text-stone-400 hover:text-white text-sm">Dashboard</Link>
+    <div className="min-h-screen text-white p-4 max-w-2xl mx-auto"
+      style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">🏆 Leaderboard</h1>
+        <Link to="/dashboard" className="text-stone-400 hover:text-white text-sm">← Dashboard</Link>
       </div>
-      <div className="space-y-3">
-        {users.map((u, i) => (
-          <Link to={`/${u.username}`} key={u.uid}>
-            <div className="bg-stone-800 rounded-xl p-4 flex items-center gap-4 hover:bg-stone-700 transition">
-              <div className={`text-2xl font-bold w-8 text-center shrink-0 ${i === 0 ? "text-yellow-400" : i === 1 ? "text-stone-300" : i === 2 ? "text-orange-400" : "text-stone-500"}`}>
+
+      <div className="text-stone-500 text-xs mb-4 uppercase tracking-wide">Ranked by sessions in {thisYear}</div>
+
+      {loading ? (
+        <div className="text-stone-500 text-center py-12">Loading...</div>
+      ) : users.length === 0 ? (
+        <div className="text-stone-500 text-center py-12">No public profiles yet</div>
+      ) : (
+        <div className="space-y-2">
+          {users.map((u, i) => (
+            <Link to={`/${u.username}`} key={u.uid}
+              className="bg-black/50 rounded-xl p-4 flex items-center gap-4 hover:bg-black/70 transition block">
+              <div className={`text-2xl font-bold w-8 text-center shrink-0 ${
+                i === 0 ? "text-yellow-400" : i === 1 ? "text-stone-300" : i === 2 ? "text-orange-400" : "text-stone-600"
+              }`}>
                 {i + 1}
               </div>
               <img
@@ -50,16 +75,16 @@ export default function Leaderboard() {
               />
               <div className="flex-1 min-w-0">
                 <div className="font-semibold truncate">{u.displayName}</div>
-                <div className="text-stone-400 text-sm truncate">@{u.username}</div>
+                <div className="text-stone-500 text-xs truncate">@{u.username}</div>
               </div>
               <div className="text-right shrink-0">
-                <div className="text-orange-400 font-bold">{u.sessions} sessions</div>
-                <div className="text-stone-400 text-sm">💨 {u.steams} · 🍺 {u.beers}</div>
+                <div className="text-orange-400 font-bold">{u.sessionsThisYear} <span className="text-stone-500 font-normal text-xs">this year</span></div>
+                <div className="text-stone-500 text-xs">total {u.sessions} · 🌊 {u.steams}</div>
               </div>
-            </div>
-          </Link>
-        ))}
-      </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
