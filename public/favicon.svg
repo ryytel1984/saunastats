@@ -1,13 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="40 10 360 390">
-  <rect width="440" height="410" fill="#1a0a00"/>
-  <g transform="translate(70,16) scale(0.56)">
-    <path d="M88 368 C152 349, 212 343, 272 347 C336 351, 387 360, 424 372 C357 374, 293 382, 217 387 C167 391, 124 387, 88 368 Z" fill="#F4A300"/>
-    <rect x="125" y="285" width="56" height="62" rx="10" fill="#F4A300"/>
-    <rect x="194" y="255" width="56" height="92" rx="10" fill="#F4A300"/>
-    <rect x="263" y="217" width="56" height="130" rx="10" fill="#F4A300"/>
-    <rect x="332" y="180" width="56" height="167" rx="10" fill="#F4A300"/>
-    <path d="M159 171 C146 146, 147 130, 160 108 C171 90, 176 72, 168 49 C198 71, 205 110, 188 142 C181 155, 173 164, 159 171 Z" fill="#F4A300"/>
-    <path d="M241 146 C229 119, 230 99, 245 75 C257 56, 264 37, 257 14 C287 38, 294 80, 276 113 C269 126, 260 138, 241 146 Z" fill="#F4A300"/>
-    <path d="M324 171 C311 146, 312 130, 325 108 C336 90, 341 72, 333 49 C363 71, 370 110, 353 142 C346 155, 338 164, 324 171 Z" fill="#F4A300"/>
-  </g>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 403 419.39">
+  <!-- Generator: Adobe Illustrator 30.2.1, SVG Export Plug-In . SVG Version: 2.1.1 Build 1)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: #f4a300;
+      }
+    </style>
+  </defs>
+  <rect width="403" height="419.39"/>
+  <path class="st0" d="M29,374c64-19,124-25,184-21,64,4,115,13,152,25-67,2-131,10-207,15-50,4-93,0-129-19Z"/>
+  <rect class="st0" x="66" y="291" width="56" height="62" rx="10" ry="10"/>
+  <rect class="st0" x="135" y="261" width="56" height="92" rx="10" ry="10"/>
+  <rect class="st0" x="204" y="223" width="56" height="130" rx="10" ry="10"/>
+  <rect class="st0" x="273" y="186" width="56" height="167" rx="10" ry="10"/>
+  <path class="st0" d="M100,177c-13-25-12-41,1-63,11-18,16-36,8-59,30,22,37,61,20,93-7,13-15,22-29,29Z"/>
+  <path class="st0" d="M182,152c-12-27-11-47,4-71,12-19,19-38,12-61,30,24,37,66,19,99-7,13-16,25-35,33Z"/>
+  <path class="st0" d="M265,177c-13-25-12-41,1-63,11-18,16-36,8-59,30,22,37,61,20,93-7,13-15,22-29,29Z"/>
 </svg>
