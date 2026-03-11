@@ -85,12 +85,16 @@ export default function Login() {
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg w-full">
         <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="w-full max-w-xs mx-auto mb-8" />
 
-        <div className="bg-black/40 backdrop-blur-sm rounded-2xl px-6 py-5 mb-8 w-full grid grid-cols-5 gap-4 border border-white/10">
-          <StatCard value={stats?.sessions ?? null} label="Saunas logged" />
-          <StatCard value={stats?.steams ?? null} label="Steams" />
-          <StatCard value={stats?.beers ?? null} label="Beers" />
-          <StatCard value={stats?.waters ?? null} label="Waters" />
-          <StatCard value={stats?.userCount ?? null} label="Enthusiasts" />
+        <div className="bg-black/40 backdrop-blur-sm rounded-2xl px-6 py-5 mb-8 w-full border border-white/10">
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <StatCard value={stats?.sessions ?? null} label="Saunas logged" />
+            <StatCard value={stats?.steams ?? null} label="Steams" />
+            <StatCard value={stats?.beers ?? null} label="Beers" />
+          </div>
+          <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto">
+            <StatCard value={stats?.waters ?? null} label="Waters" />
+            <StatCard value={stats?.userCount ?? null} label="Enthusiasts" />
+          </div>
         </div>
 
         <button
