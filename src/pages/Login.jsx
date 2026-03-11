@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { signInWithPopup } from "firebase/auth";
+import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
 import { auth, provider, db } from "../firebase";
 import { doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
@@ -26,11 +26,33 @@ function StatCard({ value, label }) {
   );
 }
 
+const isMobile = () => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
 export default function Login() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Handle redirect result on mobile
+    getRedirectResult(auth).then(async (result) => {
+      if (!result) return;
+      const user = result.user;
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) {
+        const username = user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
+        await setDoc(userRef, {
+          username,
+          displayName: user.displayName,
+          avatarUrl: user.photoURL,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      navigate("/dashboard");
+    }).catch(console.error);
+
+    // Load stats
     const load = async () => {
       const usersSnap = await getDocs(collection(db, "users"));
       const userCount = usersSnap.docs.filter(d => d.data().username).length;
@@ -51,23 +73,29 @@ export default function Login() {
   }, []);
 
   const handleLogin = async () => {
+    setLoading(true);
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-      if (!userSnap.exists()) {
-        const username = user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
-        await setDoc(userRef, {
-          username,
-          displayName: user.displayName,
-          avatarUrl: user.photoURL,
-          createdAt: new Date().toISOString(),
-        });
+      if (isMobile()) {
+        await signInWithRedirect(auth, provider);
+      } else {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+          const username = user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
+          await setDoc(userRef, {
+            username,
+            displayName: user.displayName,
+            avatarUrl: user.photoURL,
+            createdAt: new Date().toISOString(),
+          });
+        }
+        navigate("/dashboard");
       }
-      navigate("/dashboard");
     } catch (err) {
       console.error(err);
+      setLoading(false);
     }
   };
 
@@ -99,10 +127,11 @@ export default function Login() {
 
         <button
           onClick={handleLogin}
-          className="flex items-center justify-center gap-3 bg-white text-stone-900 font-semibold px-8 py-3 rounded-xl hover:bg-stone-100 transition w-full max-w-xs"
+          disabled={loading}
+          className="flex items-center justify-center gap-3 bg-white text-stone-900 font-semibold px-8 py-3 rounded-xl hover:bg-stone-100 transition w-full max-w-xs disabled:opacity-60"
         >
           <img src="https://www.google.com/favicon.ico" className="w-5 h-5" />
-          Continue with Google
+          {loading ? "Redirecting..." : "Continue with Google"}
         </button>
       </div>
     </div>
