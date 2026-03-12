@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { setDoc, doc } from "firebase/firestore";
 import { auth, db, storage } from "../firebase";
-import { doc, getDoc, getDocs, updateDoc, collection, writeBatch } from "firebase/firestore";
+import { getDoc, getDocs, updateDoc, collection, writeBatch } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useNavigate, Link } from "react-router-dom";
 
@@ -12,6 +14,7 @@ export default function Settings() {
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [notifStatus, setNotifStatus] = useState(Notification.permission); // "default" | "granted" | "denied"
   const fileRef = useRef(null);
   const navigate = useNavigate();
 
@@ -50,6 +53,28 @@ export default function Settings() {
     });
     return unsub;
   }, []);
+
+
+  const enableNotifications = async () => {
+    if (!user) return;
+    try {
+      const permission = await Notification.requestPermission();
+      setNotifStatus(permission);
+      if (permission !== "granted") return;
+      const messaging = getMessaging();
+      const token = await getToken(messaging, {
+        vapidKey: "BOlJVHZ0wx2q4MsEL0--p3cAmst4iMhqz8sYTzs0OJWibO_1VlAx68IeoyV6W-uulMDqIIvTPpIfmcn9KjXAuyI"
+      });
+      if (!token) return;
+      await setDoc(doc(db, "users", user.uid, "fcmTokens", token), {
+        token,
+        createdAt: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+      });
+    } catch (err) {
+      console.error("Notification enable failed:", err);
+    }
+  };
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];
@@ -310,6 +335,31 @@ export default function Settings() {
           </div>
         )}
       </div>
+
+      {/* Notifications */}
+      {"Notification" in window && (
+        <div className="bg-black/50 rounded-xl p-5 mt-4">
+          <div className="text-stone-400 text-xs uppercase tracking-wide mb-3">🔔 Notifications</div>
+          {notifStatus === "granted" ? (
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-green-400 rounded-full shrink-0" />
+              <div className="text-sm text-stone-300">Push notifications are enabled</div>
+            </div>
+          ) : notifStatus === "denied" ? (
+            <div className="text-stone-400 text-sm">
+              Notifications are blocked. Enable them in your browser/phone settings.
+            </div>
+          ) : (
+            <div>
+              <div className="text-stone-300 text-sm mb-3">Get notified when friends add you to a sauna session.</div>
+              <button onClick={enableNotifications}
+                className="w-full bg-orange-500 hover:bg-orange-600 font-semibold py-3 rounded-xl transition text-sm">
+                🔔 Enable notifications
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Install App */}
       {(() => {
