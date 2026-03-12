@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -8,10 +9,14 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
 import InstallBanner from "./components/InstallBanner";
+import SplashScreen from "./components/SplashScreen";
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
   return (
     <>
+      {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
       <InstallBanner />
       <Routes>
         <Route path="/" element={<Landing />} />
