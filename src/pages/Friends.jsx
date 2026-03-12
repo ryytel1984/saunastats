@@ -1,3 +1,4 @@
+import BottomNav from "../components/BottomNav";
 import { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
 import {
