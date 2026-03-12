@@ -31,18 +31,6 @@ exports.sendPushOnNotification = onDocumentCreated(
             title: "🧖 SaunaStats",
             body: `${data.fromUsername} added you to a sauna session on ${data.date}`,
           },
-          apns: {
-            payload: {
-              aps: {
-                alert: {
-                  title: "🧖 SaunaStats",
-                  body: `${data.fromUsername} added you to a sauna session on ${data.date}`,
-                },
-                badge: 1,
-                sound: "default",
-              },
-            },
-          },
           webpush: {
             fcmOptions: { link: "https://saunastats.eu/friends" },
           },

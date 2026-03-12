@@ -13,8 +13,9 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.data?.title || 'SaunaStats';
-  const body = payload.data?.body || 'You have a new notification';
+  console.log('Background message received:', JSON.stringify(payload));
+  const title = payload.data?.title || payload.notification?.title || 'SaunaStats';
+  const body = payload.data?.body || payload.notification?.body || 'You have a new notification';
   self.registration.showNotification(title, {
     body,
     icon: '/pwa-192x192.png',
