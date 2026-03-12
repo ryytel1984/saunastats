@@ -486,9 +486,19 @@ export default function Dashboard() {
 
       <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/5">
         <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="h-9" />
-        <div className="flex items-center gap-1">
-          <Link to="/settings" className="w-10 h-10 flex items-center justify-center rounded-xl text-stone-400 hover:text-white hover:bg-white/10 transition text-lg">👤</Link>
-          <button onClick={() => signOut(auth).then(() => navigate("/login"))} className="w-10 h-10 flex items-center justify-center rounded-xl text-stone-400 hover:text-white hover:bg-white/10 transition text-base">↪</button>
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center gap-1">
+          <Link to="/leaderboard" className="px-3 py-2 text-sm text-stone-400 hover:text-white hover:bg-white/10 rounded-xl transition">🏆 Leaderboard</Link>
+          <Link to="/friends" className="px-3 py-2 text-sm text-stone-400 hover:text-white hover:bg-white/10 rounded-xl transition relative">
+            👥 Friends
+            {notifCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />}
+          </Link>
+          <Link to="/settings" className="px-3 py-2 text-sm text-stone-400 hover:text-white hover:bg-white/10 rounded-xl transition">👤 Profile</Link>
+          <button onClick={() => signOut(auth).then(() => navigate("/login"))} className="w-9 h-9 flex items-center justify-center rounded-xl text-stone-400 hover:text-white hover:bg-white/10 transition text-base ml-1">⏻</button>
+        </div>
+        {/* Mobile: ainult logout */}
+        <div className="flex md:hidden items-center gap-1">
+          <button onClick={() => signOut(auth).then(() => navigate("/login"))} className="w-10 h-10 flex items-center justify-center rounded-xl text-stone-400 hover:text-white hover:bg-white/10 transition text-base">⏻</button>
         </div>
       </div>
 
@@ -666,10 +676,10 @@ export default function Dashboard() {
       {/* Bottom nav — mobiil */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-stone-950/95 backdrop-blur border-t border-white/5 flex items-center justify-around px-2 pb-safe"
         style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
-        <Link to="/dashboard" className="flex flex-col items-center gap-0.5 py-2 px-4 text-orange-400">
+        <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex flex-col items-center gap-0.5 py-2 px-4 text-orange-400">
           <span className="text-xl">🧖</span>
           <span className="text-xs font-medium">Home</span>
-        </Link>
+        </button>
         <Link to="/leaderboard" className="flex flex-col items-center gap-0.5 py-2 px-4 text-stone-400 hover:text-white transition">
           <span className="text-xl">🏆</span>
           <span className="text-xs">Leaderboard</span>
