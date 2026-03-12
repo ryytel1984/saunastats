@@ -6,7 +6,7 @@ export default function BottomNav({ onAdd }) {
   const tabs = [
     { to: "/dashboard", icon: "🧖", label: "Home" },
     { to: "/leaderboard", icon: "🏆", label: "Leaderboard" },
-    { add: true, icon: "+", label: "Add" },
+    ...(onAdd ? [{ add: true, icon: "+", label: "Add" }] : []),
     { to: "/friends", icon: "👥", label: "Friends" },
     { to: "/settings", icon: "👤", label: "Profile" },
   ];
@@ -16,7 +16,6 @@ export default function BottomNav({ onAdd }) {
       style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
       {tabs.map((tab) => {
         if (tab.add) {
-          if (!onAdd) return null;
           return (
             <button key="add" onClick={onAdd} className="flex flex-col items-center gap-0.5 py-1 px-4">
               <span className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-2xl font-light -mt-5"
@@ -25,13 +24,13 @@ export default function BottomNav({ onAdd }) {
             </button>
           );
         }
-        const active = pathname === tab.to;
+        const active = pathname === tab.to || (tab.to !== "/dashboard" && pathname.startsWith(tab.to));
         return (
           <Link key={tab.to} to={tab.to}
-            className={`flex flex-col items-center gap-0.5 py-2 px-4 transition ${active ? "text-orange-400" : "text-stone-400 hover:text-white"}`}>
+            className={`flex flex-col items-center gap-0.5 py-2 px-4 transition relative ${active ? "text-orange-400" : "text-stone-500 hover:text-white"}`}>
             <span className="text-xl">{tab.icon}</span>
             <span className={`text-xs ${active ? "font-semibold" : ""}`}>{tab.label}</span>
-            {active && <span className="w-1 h-1 bg-orange-400 rounded-full" />}
+            {active && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-orange-400 rounded-full" />}
           </Link>
         );
       })}

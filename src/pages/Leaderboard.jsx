@@ -46,7 +46,9 @@ export default function Leaderboard() {
   const thisYear = new Date().getFullYear();
 
   return (
-    <div className="min-h-screen text-white p-4 max-w-2xl mx-auto pb-24"
+    <div className="min-h-screen text-white pb-24"
+      style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
+      <div className="max-w-2xl mx-auto p-4"
       style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
       <div className="flex items-center mb-6 pb-4 border-b border-white/5">
         <h1 className="text-lg font-bold">🏆 Leaderboard</h1>
@@ -86,6 +88,7 @@ export default function Leaderboard() {
         </div>
       )}
       <BottomNav />
+      </div>
     </div>
   );
 }
