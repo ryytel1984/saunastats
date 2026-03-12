@@ -494,11 +494,11 @@ export default function Dashboard() {
             {notifCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />}
           </Link>
           <Link to="/settings" className="px-3 py-2 text-sm text-stone-400 hover:text-white hover:bg-white/10 rounded-xl transition">👤 Profile</Link>
-          <button onClick={() => signOut(auth).then(() => navigate("/login"))} className="w-9 h-9 flex items-center justify-center rounded-xl text-stone-400 hover:text-white hover:bg-white/10 transition text-base ml-1">⏻</button>
+          <button onClick={() => signOut(auth).then(() => navigate("/login"))} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stone-700 hover:border-stone-500 text-stone-400 hover:text-white transition text-sm ml-1">⏻ <span>Log out</span></button>
         </div>
         {/* Mobile: ainult logout */}
         <div className="flex md:hidden items-center gap-1">
-          <button onClick={() => signOut(auth).then(() => navigate("/login"))} className="w-10 h-10 flex items-center justify-center rounded-xl text-stone-400 hover:text-white hover:bg-white/10 transition text-base">⏻</button>
+          <button onClick={() => signOut(auth).then(() => navigate("/login"))} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stone-700 hover:border-stone-500 text-stone-400 hover:text-white transition text-sm">⏻ <span>Log out</span></button>
         </div>
       </div>
 
