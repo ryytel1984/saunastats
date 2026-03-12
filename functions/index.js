@@ -16,34 +16,35 @@ exports.sendPushOnNotification = onDocumentCreated(
     const db = getFirestore();
 
     const tokensSnap = await db
-      .collection("users")
-      .doc(userId)
-      .collection("fcmTokens")
-      .get();
+      .collection("users").doc(userId).collection("fcmTokens").get();
 
     if (tokensSnap.empty) return;
-
     const tokens = tokensSnap.docs.map((d) => d.data().token).filter(Boolean);
     if (tokens.length === 0) return;
-
-    const title = "🧖 SaunaStats";
-    const body = `${data.fromUsername} added you to a sauna session on ${data.date}`;
 
     const messaging = getMessaging();
     const results = await Promise.allSettled(
       tokens.map((token) =>
         messaging.send({
           token,
+          data: {
+            title: "🧖 SaunaStats",
+            body: `${data.fromUsername} added you to a sauna session on ${data.date}`,
+          },
+          apns: {
+            payload: {
+              aps: {
+                alert: {
+                  title: "🧖 SaunaStats",
+                  body: `${data.fromUsername} added you to a sauna session on ${data.date}`,
+                },
+                badge: 1,
+                sound: "default",
+              },
+            },
+          },
           webpush: {
-            notification: {
-              title,
-              body,
-              icon: "https://saunastats.eu/pwa-192x192.png",
-              badge: "https://saunastats.eu/pwa-192x192.png",
-            },
-            fcmOptions: {
-              link: "https://saunastats.eu/friends",
-            },
+            fcmOptions: { link: "https://saunastats.eu/friends" },
           },
         })
       )
@@ -51,11 +52,9 @@ exports.sendPushOnNotification = onDocumentCreated(
 
     const invalidTokens = [];
     results.forEach((result, i) => {
-      if (
-        result.status === "rejected" &&
+      if (result.status === "rejected" &&
         (result.reason?.code === "messaging/invalid-registration-token" ||
-          result.reason?.code === "messaging/registration-token-not-registered")
-      ) {
+          result.reason?.code === "messaging/registration-token-not-registered")) {
         invalidTokens.push(tokens[i]);
       }
     });
@@ -63,12 +62,8 @@ exports.sendPushOnNotification = onDocumentCreated(
     if (invalidTokens.length > 0) {
       const batch = db.batch();
       for (const token of invalidTokens) {
-        const snap = await db
-          .collection("users")
-          .doc(userId)
-          .collection("fcmTokens")
-          .where("token", "==", token)
-          .get();
+        const snap = await db.collection("users").doc(userId)
+          .collection("fcmTokens").where("token", "==", token).get();
         snap.docs.forEach((d) => batch.delete(d.ref));
       }
       await batch.commit();
