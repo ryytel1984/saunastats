@@ -10,18 +10,7 @@ firebase.initializeApp({
   appId: "1:396824416968:web:1236de8cc9d1e824e1cbfd",
 });
 
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage((payload) => {
-  const title = payload.data?.title || 'SaunaStats';
-  const body = payload.data?.body || 'You have a new notification';
-  self.registration.showNotification(title, {
-    body,
-    icon: '/pwa-192x192.png',
-    badge: '/pwa-192x192.png',
-    data: payload.data,
-  });
-});
+firebase.messaging();
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
