@@ -295,9 +295,12 @@ export default function Settings() {
           <div className="bg-black/50 rounded-xl p-5 mb-4">
             <div className="text-stone-400 text-xs uppercase tracking-wide mb-4">🔔 Notifications</div>
             {notifStatus === "granted" ? (
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-green-400 rounded-full shrink-0" />
-                <div className="text-sm text-stone-300">Push notifications are enabled</div>
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full shrink-0" />
+                  <div className="text-sm text-stone-300">Push notifications are enabled</div>
+                </div>
+                <div className="text-stone-600 text-xs">To disable: phone Settings → Notifications → SaunaStats</div>
               </div>
             ) : notifStatus === "denied" ? (
               <div className="text-stone-400 text-sm">Notifications are blocked. Enable them in your phone settings.</div>
