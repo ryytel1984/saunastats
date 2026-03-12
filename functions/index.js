@@ -26,7 +26,6 @@ exports.sendPushOnNotification = onDocumentCreated(
     const tokens = tokensSnap.docs.map((d) => d.data().token).filter(Boolean);
     if (tokens.length === 0) return;
 
-    const title = "🧖 SaunaStats";
     const body = `${data.fromUsername} added you to a sauna session on ${data.date}`;
 
     const messaging = getMessaging();
@@ -34,10 +33,9 @@ exports.sendPushOnNotification = onDocumentCreated(
       tokens.map((token) =>
         messaging.send({
           token,
-          notification: { title, body },
           webpush: {
             notification: {
-              title,
+              title: "🧖 SaunaStats",
               body,
               icon: "https://saunastats.eu/pwa-192x192.png",
               badge: "https://saunastats.eu/pwa-192x192.png",

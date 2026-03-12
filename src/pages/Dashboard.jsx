@@ -719,11 +719,7 @@ export default function Dashboard() {
                       🔀 {group.length} sessions on {s.date}
                     </div>
                     <button
-                      onClick={() => {
-                        if (window.confirm("Merge these sessions? First session stats stay, companions combined.")) {
-                          handleMerge(group[0], group.slice(1));
-                        }
-                      }}
+                      onClick={() => setMergeModal({ group, selected: new Set(group.map(s => s.id)) })}
                       className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-lg transition font-medium">
                       Merge
                     </button>
