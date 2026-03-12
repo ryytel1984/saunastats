@@ -22,6 +22,30 @@ export default function Settings() {
   const [linkMatches, setLinkMatches] = useState(null); // sessions found
   const [linking, setLinking] = useState(false);
   const [linkDone, setLinkDone] = useState(null); // {count, username}
+  const [notifStatus, setNotifStatus] = useState(() => {
+    try { return Notification.permission; } catch { return "default"; }
+  });
+
+  const enableNotifications = async () => {
+    if (!user) return;
+    try {
+      const { getMessaging, getToken } = await import("firebase/messaging");
+      const { setDoc, doc: fsDoc } = await import("firebase/firestore");
+      const permission = await Notification.requestPermission();
+      setNotifStatus(permission);
+      if (permission !== "granted") return;
+      const messaging = getMessaging();
+      const token = await getToken(messaging, {
+        vapidKey: "BOlJVHZ0wx2q4MsEL0--p3cAmst4iMhqz8sYTzs0OJWibO_1VlAx68IeoyV6W-uulMDqIIvTPpIfmcn9KjXAuyI"
+      });
+      if (!token) return;
+      await setDoc(fsDoc(db, "users", user.uid, "fcmTokens", token), {
+        token, createdAt: new Date().toISOString(), userAgent: navigator.userAgent,
+      });
+    } catch (err) {
+      console.error("Notification enable failed:", err);
+    }
+  };
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async (u) => {
