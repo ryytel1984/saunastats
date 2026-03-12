@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { Link } from "react-router-dom";
+import BottomNav from "../components/BottomNav";
 
 export default function Leaderboard() {
   const [users, setUsers] = useState([]);
@@ -45,11 +46,10 @@ export default function Leaderboard() {
   const thisYear = new Date().getFullYear();
 
   return (
-    <div className="min-h-screen text-white p-4 max-w-2xl mx-auto"
+    <div className="min-h-screen text-white p-4 max-w-2xl mx-auto pb-24"
       style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">🏆 Leaderboard</h1>
-        <Link to="/dashboard" className="text-stone-400 hover:text-white text-sm">← Dashboard</Link>
+      <div className="flex items-center mb-6 pb-4 border-b border-white/5">
+        <h1 className="text-lg font-bold">🏆 Leaderboard</h1>
       </div>
 
       <div className="text-stone-500 text-xs mb-4 uppercase tracking-wide">Ranked by sessions in {thisYear}</div>
@@ -85,6 +85,7 @@ export default function Leaderboard() {
           ))}
         </div>
       )}
+      <BottomNav />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { signOut } from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { usePushNotifications } from "../hooks/usePushNotifications";
+import BottomNav from "../components/BottomNav";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -673,33 +674,7 @@ export default function Dashboard() {
         + Add sauna session
       </button>
 
-      {/* Bottom nav — mobiil */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-stone-950/95 backdrop-blur border-t border-white/5 flex items-center justify-around px-2 pb-safe"
-        style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
-        <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex flex-col items-center gap-0.5 py-2 px-4 text-orange-400">
-          <span className="text-xl">🧖</span>
-          <span className="text-xs font-medium">Home</span>
-        </button>
-        <Link to="/leaderboard" className="flex flex-col items-center gap-0.5 py-2 px-4 text-stone-400 hover:text-white transition">
-          <span className="text-xl">🏆</span>
-          <span className="text-xs">Leaderboard</span>
-        </Link>
-        <button onClick={() => setShowForm(true)}
-          className="flex flex-col items-center gap-0.5 py-1 px-4">
-          <span className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-2xl font-light -mt-5 shadow-lg"
-            style={{ boxShadow: "0 4px 20px rgba(249,115,22,0.5)" }}>+</span>
-          <span className="text-xs text-stone-400 mt-0.5">Add</span>
-        </button>
-        <Link to="/friends" className="flex flex-col items-center gap-0.5 py-2 px-4 text-stone-400 hover:text-white transition relative">
-          <span className="text-xl">👥</span>
-          {notifCount > 0 && <span className="absolute top-1.5 right-3 w-2 h-2 bg-red-500 rounded-full" />}
-          <span className="text-xs">Friends</span>
-        </Link>
-        <Link to="/settings" className="flex flex-col items-center gap-0.5 py-2 px-4 text-stone-400 hover:text-white transition">
-          <span className="text-xl">👤</span>
-          <span className="text-xs">Profile</span>
-        </Link>
-      </div>
+      <div className="md:hidden"><BottomNav onAdd={() => setShowForm(true)} /></div>
 
       {/* Add session bottom sheet */}
       {showForm && (

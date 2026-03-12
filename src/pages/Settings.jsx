@@ -404,26 +404,7 @@ export default function Settings() {
 
       </div>
 
-      {/* Bottom nav */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-stone-950/95 backdrop-blur border-t border-white/5 flex items-center justify-around px-2"
-        style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
-        <Link to="/dashboard" className="flex flex-col items-center gap-0.5 py-2 px-4 text-stone-400 hover:text-white transition">
-          <span className="text-xl">🧖</span>
-          <span className="text-xs">Home</span>
-        </Link>
-        <Link to="/leaderboard" className="flex flex-col items-center gap-0.5 py-2 px-4 text-stone-400 hover:text-white transition">
-          <span className="text-xl">🏆</span>
-          <span className="text-xs">Leaderboard</span>
-        </Link>
-        <Link to="/friends" className="flex flex-col items-center gap-0.5 py-2 px-4 text-stone-400 hover:text-white transition">
-          <span className="text-xl">👥</span>
-          <span className="text-xs">Friends</span>
-        </Link>
-        <span className="flex flex-col items-center gap-0.5 py-2 px-4 text-orange-400">
-          <span className="text-xl">👤</span>
-          <span className="text-xs font-medium">Profile</span>
-        </span>
-      </div>
+      <BottomNav />
     </div>
   );
 }

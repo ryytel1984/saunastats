@@ -162,7 +162,7 @@ export default function Friends() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen text-white" style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
+    <div className= pb-24"min-h-screen text-white" style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
     <div className="max-w-2xl mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">
@@ -171,7 +171,7 @@ export default function Friends() {
             <span className="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full align-middle">{totalNotifs}</span>
           )}
         </h1>
-        <Link to="/dashboard" className="text-stone-400 hover:text-white text-sm">← Dashboard</Link>
+        
       </div>
 
       {sessionInvites.length > 0 && (
@@ -394,6 +394,7 @@ export default function Friends() {
         </div>
       )}
     </div>
+      <BottomNav />
     </div>
   );
 }
