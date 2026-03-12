@@ -1,13 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
 
-export default function BottomNav({ onAdd }) {
+export default function BottomNav({ onAdd, notifCount = 0 }) {
   const { pathname } = useLocation();
 
   const tabs = [
     { to: "/dashboard", icon: "🧖", label: "Home" },
     { to: "/leaderboard", icon: "🏆", label: "Leaderboard" },
     ...(onAdd ? [{ add: true, icon: "+", label: "Add" }] : []),
-    { to: "/friends", icon: "👥", label: "Friends" },
+    { to: "/friends", icon: "👥", label: "Friends", badge: notifCount > 0 },
     { to: "/settings", icon: "👤", label: "Profile" },
   ];
 
@@ -28,7 +28,12 @@ export default function BottomNav({ onAdd }) {
         return (
           <Link key={tab.to} to={tab.to}
             className={`flex flex-col items-center gap-0.5 py-2 px-4 transition relative ${active ? "text-orange-400" : "text-stone-500 hover:text-white"}`}>
-            <span className="text-xl">{tab.icon}</span>
+            <span className="text-xl relative">
+              {tab.icon}
+              {tab.badge && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+              )}
+            </span>
             <span className={`text-xs ${active ? "font-semibold" : ""}`}>{tab.label}</span>
             {active && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-orange-400 rounded-full" />}
           </Link>

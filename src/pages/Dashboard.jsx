@@ -674,7 +674,7 @@ export default function Dashboard() {
         + Add sauna session
       </button>
 
-      <div className="md:hidden"><BottomNav onAdd={() => setShowForm(true)} /></div>
+      <div className="md:hidden"><BottomNav onAdd={() => setShowForm(true)} notifCount={notifCount} /></div>
 
       {/* Add session bottom sheet */}
       {showForm && (
