@@ -8,6 +8,18 @@ import { usePushNotifications } from "../hooks/usePushNotifications";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const [, m, d] = dateStr.split("-");
+  return `${MONTHS[parseInt(m, 10) - 1]} ${parseInt(d, 10)}`;
+}
+
+function formatMonth(dateStr) {
+  if (!dateStr) return "";
+  const [y, m] = dateStr.split("-");
+  return `${MONTHS[parseInt(m, 10) - 1]} ${y}`;
+}
+
 const emptyForm = {
   date: new Date().toISOString().split("T")[0],
   type: "home",
@@ -472,18 +484,11 @@ export default function Dashboard() {
       <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
       <div className="max-w-2xl mx-auto p-4">
 
-      <div className="flex justify-between items-center mb-6">
-        <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="h-11" />
-        <div className="flex items-center gap-3 text-sm text-stone-400">
-          <Link to="/leaderboard" className="hover:text-white">Leaderboard</Link>
-          <Link to="/friends" className="hover:text-white relative">
-            Friends
-            {notifCount > 0 && (
-              <span className="absolute -top-1 -right-2 w-2 h-2 bg-red-500 rounded-full" />
-            )}
-          </Link>
-          <Link to="/settings" className="hover:text-white">Profile</Link>
-          <button onClick={() => signOut(auth).then(() => navigate("/login"))} className="hover:text-white text-base">↪</button>
+      <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/5">
+        <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="h-9" />
+        <div className="flex items-center gap-1">
+          <Link to="/settings" className="w-10 h-10 flex items-center justify-center rounded-xl text-stone-400 hover:text-white hover:bg-white/10 transition text-lg">👤</Link>
+          <button onClick={() => signOut(auth).then(() => navigate("/login"))} className="w-10 h-10 flex items-center justify-center rounded-xl text-stone-400 hover:text-white hover:bg-white/10 transition text-base">↪</button>
         </div>
       </div>
 
@@ -615,7 +620,7 @@ export default function Dashboard() {
       {(awayTop.length > 0 || awayTopLast.length > 0) && (
         <div className="grid grid-cols-2 gap-3 mb-4">
           {awayTop.length > 0 && (
-            <div className="bg-black/50 rounded-xl p-4">
+            <div className="bg-black/50 rounded-xl p-4 mb-24 md:mb-4">
               <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📍 Away {thisYear}</div>
               {awayTop.map(([loc, count]) => (
                 <div key={loc} className="flex justify-between py-1 border-b border-stone-700 last:border-0 text-sm">
@@ -651,21 +656,40 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Floating add button — ainult mobiilil */}
-      <button
-        onClick={() => setShowForm(true)}
-        className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-orange-500 hover:bg-orange-600 active:scale-95 rounded-full flex items-center justify-center text-2xl font-light transition-all z-40"
-        style={{ boxShadow: "0 4px 24px rgba(249,115,22,0.5)" }}
-      >
-        +
-      </button>
-
-      {/* Inline nupp — ainult desktopil */}
+      {/* Desktop add nupp */}
       <button
         onClick={() => setShowForm(true)}
         className="hidden md:block w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl mb-4 transition">
         + Add sauna session
       </button>
+
+      {/* Bottom nav — mobiil */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-stone-950/95 backdrop-blur border-t border-white/5 flex items-center justify-around px-2 pb-safe"
+        style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+        <Link to="/dashboard" className="flex flex-col items-center gap-0.5 py-2 px-4 text-orange-400">
+          <span className="text-xl">🧖</span>
+          <span className="text-xs font-medium">Home</span>
+        </Link>
+        <Link to="/leaderboard" className="flex flex-col items-center gap-0.5 py-2 px-4 text-stone-400 hover:text-white transition">
+          <span className="text-xl">🏆</span>
+          <span className="text-xs">Leaderboard</span>
+        </Link>
+        <button onClick={() => setShowForm(true)}
+          className="flex flex-col items-center gap-0.5 py-1 px-4">
+          <span className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-2xl font-light -mt-5 shadow-lg"
+            style={{ boxShadow: "0 4px 20px rgba(249,115,22,0.5)" }}>+</span>
+          <span className="text-xs text-stone-400 mt-0.5">Add</span>
+        </button>
+        <Link to="/friends" className="flex flex-col items-center gap-0.5 py-2 px-4 text-stone-400 hover:text-white transition relative">
+          <span className="text-xl">👥</span>
+          {notifCount > 0 && <span className="absolute top-1.5 right-3 w-2 h-2 bg-red-500 rounded-full" />}
+          <span className="text-xs">Friends</span>
+        </Link>
+        <Link to="/settings" className="flex flex-col items-center gap-0.5 py-2 px-4 text-stone-400 hover:text-white transition">
+          <span className="text-xl">👤</span>
+          <span className="text-xs">Profile</span>
+        </Link>
+      </div>
 
       {/* Add session bottom sheet */}
       {showForm && (
@@ -705,10 +729,23 @@ export default function Dashboard() {
               dateGroups[s.date].push(s);
             });
 
+            let lastMonth = null;
             return tabSaunas.reduce((acc, s) => {
               const group = dateGroups[s.date];
               const isFirst = group[0].id === s.id;
               const isDuplicate = group.length > 1;
+              const sessionMonth = s.date?.slice(0, 7);
+              if (isFirst && sessionMonth !== lastMonth) {
+                lastMonth = sessionMonth;
+                const monthSessions = tabSaunas.filter(x => x.date?.startsWith(sessionMonth)).length;
+                acc.push(
+                  <div key={"month-" + sessionMonth} className="flex items-center gap-3 mt-4 mb-2 first:mt-0">
+                    <span className="text-stone-400 text-xs font-semibold uppercase tracking-wider">{formatMonth(s.date)}</span>
+                    <span className="text-stone-600 text-xs">{monthSessions} session{monthSessions !== 1 ? "s" : ""}</span>
+                    <div className="flex-1 h-px bg-stone-800" />
+                  </div>
+                );
+              }
 
               // Näita merge banner ainult esimese kande eel
               if (isDuplicate && isFirst) {
@@ -716,7 +753,7 @@ export default function Dashboard() {
                   <div key={"merge-" + s.date}
                     className="rounded-xl border border-orange-500/50 bg-orange-500/10 px-3 py-2 flex items-center justify-between">
                     <div className="text-orange-400 text-xs font-medium">
-                      🔀 {group.length} sessions on {s.date}
+                      🔀 {group.length} sessions on {formatDate(s.date)}
                     </div>
                     <button
                       onClick={() => setMergeModal({ group, selected: new Set(group.map(s => s.id)) })}
@@ -731,7 +768,7 @@ export default function Dashboard() {
                 <div key={s.id} onClick={() => openEdit(s)}
                   className={`rounded-xl p-3 flex justify-between items-center cursor-pointer transition ${isDuplicate ? "bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20" : "bg-black/40 hover:bg-black/60"}`}>
                   <div>
-                    <div className="font-semibold text-sm">{s.date} · {s.location || (s.type === "home" ? "Home" : "Away")}</div>
+                    <div className="font-semibold text-sm">{formatDate(s.date)} · {s.location || (s.type === "home" ? "Home" : "Away")}</div>
                     <div className="text-stone-400 text-xs mt-1">
                       🌊 {s.steams}
                       {getBeers(s) > 0 && ` · 🍺 ${getBeers(s)}`}
