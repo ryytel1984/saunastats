@@ -10,14 +10,23 @@ exports.sendPushOnNotification = onDocumentCreated(
   async (event) => {
     const data = event.data?.data();
     if (!data) return;
-    if (data.type !== "session_invite") return;
 
     const userId = event.params.userId;
     const db = getFirestore();
 
+    let title, body;
+    if (data.type === "session_invite") {
+      title = "🧖 SaunaStats";
+      body = `${data.fromUsername} added you to a sauna session on ${data.date}`;
+    } else if (data.type === "new_user") {
+      title = "🧖 SaunaStats";
+      body = data.body || `${data.fromUsername} joined SaunaStats!`;
+    } else {
+      return;
+    }
+
     const tokensSnap = await db
       .collection("users").doc(userId).collection("fcmTokens").get();
-
     if (tokensSnap.empty) return;
     const tokens = tokensSnap.docs.map((d) => d.data().token).filter(Boolean);
     if (tokens.length === 0) return;
@@ -27,10 +36,7 @@ exports.sendPushOnNotification = onDocumentCreated(
       tokens.map((token) =>
         messaging.send({
           token,
-          data: {
-            title: "🧖 SaunaStats",
-            body: `${data.fromUsername} added you to a sauna session on ${data.date}`,
-          },
+          data: { title, body },
           webpush: {
             fcmOptions: { link: "https://saunastats.eu/friends" },
           },

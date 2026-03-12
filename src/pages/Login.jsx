@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
 import { auth, provider, db } from "../firebase";
-import { doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
 function getBeers(s) {
@@ -38,6 +38,16 @@ async function saveNewUser(user) {
       displayName: user.displayName,
       avatarUrl: user.photoURL,
       createdAt: new Date().toISOString(),
+    });
+    // Teavita admini uuest kasutajast
+    await addDoc(collection(db, "users", "1tRQDUGWP6MU5BLBgL1Xo0E50zP2", "notifications"), {
+      type: "session_invite",
+      fromUid: user.uid,
+      fromUsername: user.displayName || username,
+      date: new Date().toISOString().split("T")[0],
+      body: `${user.displayName || username} joined SaunaStats!`,
+      status: "pending",
+      createdAt: serverTimestamp(),
     });
   }
 }
