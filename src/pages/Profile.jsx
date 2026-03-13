@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { auth, db } from "../firebase";
 import { collection, getDocs, doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useParams, Link } from "react-router-dom";
+import BottomNav from "../components/BottomNav";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -469,6 +470,7 @@ export default function Profile() {
         </div>
       </div>
       </>)}
+      <BottomNav />
     </div>
     </div>
   );
