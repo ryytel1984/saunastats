@@ -485,6 +485,17 @@ export default function Dashboard() {
   });
   const compTop = Object.entries(compCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
+  const compCountAll = {};
+  saunas.forEach((s) => {
+    (s.companions || []).forEach((c) => {
+      const name = resolveCompanionName(c, userMap);
+      if (!name) return;
+      compCountAll[name] = (compCountAll[name] || 0) + 1;
+      if (c.uid) compUidMap[name] = c.uid;
+    });
+  });
+  const compTopAll = Object.entries(compCountAll).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
   const chartData = MONTHS.map((month, i) => {
     const m = String(i + 1).padStart(2, "0");
     return {
@@ -681,23 +692,46 @@ export default function Dashboard() {
         </div>
       )}
 
-      {compTop.length > 0 && (
-        <div className="bg-black/50 rounded-xl p-4 mb-4">
-          <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">👥 Top companions ({thisYear})</div>
-          {compTop.map(([name, count]) => {
-            const uid = compUidMap[name];
-            return uid ? (
-              <Link key={name} to={`/profile/${uid}`} className="flex justify-between py-1 border-b border-stone-700 last:border-0 hover:text-orange-400 transition">
-                <span>{name}</span>
-                <span className="text-orange-400">{count}x</span>
-              </Link>
-            ) : (
-              <div key={name} className="flex justify-between py-1 border-b border-stone-700 last:border-0">
-                <span>{name}</span>
-                <span className="text-orange-400">{count}x</span>
-              </div>
-            );
-          })}
+      {(compTop.length > 0 || compTopAll.length > 0) && (
+        <div className="flex gap-3 mb-4">
+          {compTop.length > 0 && (
+            <div className="bg-black/50 rounded-xl p-4 flex-1 self-start">
+              <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">👥 Top companions ({thisYear})</div>
+              {compTop.map(([name, count]) => {
+                const uid = compUidMap[name];
+                return uid ? (
+                  <Link key={name} to={`/profile/${uid}`} className="flex justify-between py-1 border-b border-stone-700 last:border-0 hover:text-orange-400 transition text-sm">
+                    <span>{name}</span>
+                    <span className="text-orange-400">{count}x</span>
+                  </Link>
+                ) : (
+                  <div key={name} className="flex justify-between py-1 border-b border-stone-700 last:border-0 text-sm">
+                    <span>{name}</span>
+                    <span className="text-orange-400">{count}x</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {compTopAll.length > 0 && (
+            <div className="bg-black/50 rounded-xl p-4 flex-1 self-start">
+              <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">👥 Top companions (all time)</div>
+              {compTopAll.map(([name, count]) => {
+                const uid = compUidMap[name];
+                return uid ? (
+                  <Link key={name} to={`/profile/${uid}`} className="flex justify-between py-1 border-b border-stone-700 last:border-0 hover:text-orange-400 transition text-sm">
+                    <span>{name}</span>
+                    <span className="text-orange-400">{count}x</span>
+                  </Link>
+                ) : (
+                  <div key={name} className="flex justify-between py-1 border-b border-stone-700 last:border-0 text-sm">
+                    <span>{name}</span>
+                    <span className="text-orange-400">{count}x</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
