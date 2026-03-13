@@ -1,4 +1,3 @@
-import BottomNav from "../components/BottomNav";
 import { useState, useEffect, useRef } from "react";
 import { auth, db, storage } from "../firebase";
 import { doc, getDoc, getDocs, updateDoc, collection, writeBatch } from "firebase/firestore";
@@ -114,18 +113,25 @@ export default function Settings() {
     setSaving(false);
   };
 
-  // Find sessions where companions contains linkName as text
+  // Find sessions where companions contains linkName as text, or by location
   const handleFindSessions = async () => {
     if (!linkName.trim() || !linkTarget) return;
     const snap = await getDocs(collection(db, "users", user.uid, "saunas"));
     const name = linkName.trim().toLowerCase();
+
     const matches = snap.docs.filter(d => {
-      const companions = d.data().companions || [];
-      return companions.some(c => {
-        if (typeof c === "string") return c.toLowerCase() === name;
-        if (c.text) return c.text.toLowerCase() === name;
-        return false;
-      });
+      const data = d.data();
+      if (searchMode === "location") {
+        const loc = (data.location || "").toLowerCase();
+        return loc.includes(name);
+      } else {
+        const companions = data.companions || [];
+        return companions.some(c => {
+          if (typeof c === "string") return c.toLowerCase() === name;
+          if (c.text) return c.text.toLowerCase() === name;
+          return false;
+        });
+      }
     });
     setLinkMatches(matches.map(d => ({ id: d.id, ...d.data() })));
   };
@@ -138,12 +144,21 @@ export default function Settings() {
     const batch = writeBatch(db);
 
     for (const session of linkMatches) {
-      const companions = (session.companions || []).map(c => {
-        const isMatch = (typeof c === "string" && c.toLowerCase() === name) ||
-                        (c.text && c.text.toLowerCase() === name);
-        if (isMatch) return { uid: linkTarget.uid, username: linkTarget.username };
-        return c;
-      });
+      let companions;
+      if (searchMode === "location") {
+        // Lisa companion juurde (ära dubleeri)
+        const existing = session.companions || [];
+        const alreadyLinked = existing.some(c => c.uid === linkTarget.uid);
+        companions = alreadyLinked ? existing : [...existing, { uid: linkTarget.uid, username: linkTarget.username }];
+      } else {
+        // Asenda tekstiline companion UID-ga
+        companions = (session.companions || []).map(c => {
+          const isMatch = (typeof c === "string" && c.toLowerCase() === name) ||
+                          (c.text && c.text.toLowerCase() === name);
+          if (isMatch) return { uid: linkTarget.uid, username: linkTarget.username };
+          return c;
+        });
+      }
       batch.update(doc(db, "users", user.uid, "saunas", session.id), { companions });
     }
     await batch.commit();
@@ -177,6 +192,7 @@ export default function Settings() {
   };
 
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [searchMode, setSearchMode] = useState("name");
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center"
@@ -338,7 +354,7 @@ export default function Settings() {
           {showAdvanced && (
             <div className="px-5 pb-5 border-t border-stone-800">
               <div className="text-stone-500 text-xs mt-4 mb-4">
-                If you logged a friend by name before they had an account, link those sessions to their profile now.
+                Link sessions to a friend's profile. Search by name you wrote, or by location if you forgot to add them.
               </div>
               {linkDone && (
                 <div className="bg-green-900/40 border border-green-700 text-green-300 text-sm rounded-lg p-3 mb-4">
@@ -349,11 +365,23 @@ export default function Settings() {
                 <div className="text-stone-500 text-sm">Add friends first to link sessions.</div>
               ) : (
                 <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <button onClick={() => { setSearchMode("name"); setLinkMatches(null); setLinkDone(null); }}
+                      className={`flex-1 text-xs py-1.5 rounded-lg transition ${searchMode === "name" ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-400"}`}>
+                      By companion name
+                    </button>
+                    <button onClick={() => { setSearchMode("location"); setLinkMatches(null); setLinkDone(null); }}
+                      className={`flex-1 text-xs py-1.5 rounded-lg transition ${searchMode === "location" ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-400"}`}>
+                      By location
+                    </button>
+                  </div>
                   <div>
-                    <label className="text-stone-400 text-xs">Name you wrote in the session</label>
+                    <label className="text-stone-400 text-xs">
+                      {searchMode === "name" ? "Name you wrote in the session" : "Location name"}
+                    </label>
                     <input type="text" value={linkName}
                       onChange={(e) => { setLinkName(e.target.value); setLinkMatches(null); setLinkDone(null); }}
-                      placeholder='e.g. "Ott"'
+                      placeholder={searchMode === "name" ? 'e.g. "Ott"' : 'e.g. "Vääna"'}
                       className="w-full bg-stone-700 rounded-lg px-3 py-2 mt-1 text-white text-sm" />
                   </div>
                   <div>
@@ -373,12 +401,12 @@ export default function Settings() {
                   <button onClick={handleFindSessions}
                     disabled={!linkName.trim() || !linkTarget}
                     className="w-full bg-stone-700 hover:bg-stone-600 disabled:opacity-40 text-sm font-medium py-2 rounded-lg transition">
-                    Search my sessions for "{linkName || "..."}"
+                    Search sessions for "{linkName || "..."}"
                   </button>
                   {linkMatches !== null && (
                     <div>
                       {linkMatches.length === 0 ? (
-                        <div className="text-stone-500 text-sm text-center py-2">No sessions found with that name.</div>
+                        <div className="text-stone-500 text-sm text-center py-2">No sessions found.</div>
                       ) : (
                         <>
                           <div className="text-stone-400 text-xs mb-2">Found {linkMatches.length} session{linkMatches.length !== 1 ? "s" : ""}:</div>
