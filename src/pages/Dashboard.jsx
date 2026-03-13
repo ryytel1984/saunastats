@@ -102,6 +102,7 @@ function AutocompleteInput({ value, onChange, suggestions, placeholder, classNam
 
 function FormFields({ f, setF, locationSuggestions, friendsList }) {
   const [compOpen, setCompOpen] = useState(false);
+  const [friendSearch, setFriendSearch] = useState("");
   const [manualInput, setManualInput] = useState("");
   const compRef = useRef(null);
 
@@ -198,14 +199,23 @@ function FormFields({ f, setF, locationSuggestions, friendsList }) {
 
         {friendsList && friendsList.length > 0 && (
           <div className="relative mt-1" ref={compRef}>
-            <button type="button" onClick={() => setCompOpen(!compOpen)}
+            <button type="button" onClick={() => { setCompOpen(!compOpen); setFriendSearch(""); }}
               className="w-full bg-stone-700 rounded-lg px-3 py-2 text-left text-sm text-stone-400 flex justify-between items-center">
               <span>Add from friends...</span>
               <span>{compOpen ? "▲" : "▼"}</span>
             </button>
             {compOpen && (
               <div className="absolute z-10 w-full bg-stone-700 rounded-lg mt-1 shadow-lg overflow-hidden">
-                {friendsList.map((friend) => {
+                <input
+                  type="text"
+                  value={friendSearch}
+                  onChange={e => setFriendSearch(e.target.value)}
+                  placeholder="Search friends..."
+                  className="w-full bg-stone-600 px-3 py-2 text-white text-sm placeholder-stone-400 outline-none"
+                  onMouseDown={e => e.stopPropagation()}
+                  autoFocus
+                />
+                {friendsList.filter(f => f.displayName.toLowerCase().includes(friendSearch.toLowerCase())).map((friend) => {
                   const selected = selectedUids.includes(friend.uid);
                   return (
                     <div key={friend.uid} onMouseDown={() => toggleFriend(friend)}
@@ -244,6 +254,7 @@ export default function Dashboard() {
   const [editSession, setEditSession] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [logTab, setLogTab] = useState(null);
+  const [logSearch, setLogSearch] = useState("");
   const [friendsList, setFriendsList] = useState([]);
   const [notifCount, setNotifCount] = useState(0);
   const [mergeModal, setMergeModal] = useState(null);
@@ -477,7 +488,14 @@ export default function Dashboard() {
 
   const allYears = [...new Set(saunas.map((s) => s.date?.slice(0, 4)).filter(Boolean))].sort((a, b) => b - a);
   const activeTab = logTab || allYears[0] || thisYear;
-  const tabSaunas = saunas.filter((s) => s.date?.startsWith(activeTab));
+  const tabSaunas = saunas.filter((s) => {
+    if (!s.date?.startsWith(activeTab)) return false;
+    if (!logSearch.trim()) return true;
+    const q = logSearch.trim().toLowerCase();
+    const locationMatch = (s.location || "").toLowerCase().includes(q);
+    const companionMatch = getCompanionNames(s.companions, userMap).some(n => n.toLowerCase().includes(q));
+    return locationMatch || companionMatch;
+  });
 
   return (
     <div className="min-h-screen text-white" style={{ background: "radial-gradient(ellipse at 50% 0%, #3d1a00 0%, #1a0a00 40%, #0d0d0d 100%)" }}>
@@ -697,13 +715,22 @@ export default function Dashboard() {
 
       <div className="bg-black/50 rounded-xl p-4">
         <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📋 Sauna log</div>
-        <div className="flex gap-2 mb-4 flex-wrap">
+        <div className="flex gap-2 mb-3 flex-wrap">
           {allYears.map((year) => (
             <button key={year} onClick={() => setLogTab(year)}
               className={`px-4 py-1 rounded-full text-sm font-medium transition ${activeTab === year ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-400 hover:bg-stone-600"}`}>
               {year}
             </button>
           ))}
+        </div>
+        <div className="mb-4">
+          <input
+            type="text"
+            value={logSearch}
+            onChange={e => setLogSearch(e.target.value)}
+            placeholder="Search by location or companion..."
+            className="w-full bg-stone-700 rounded-lg px-3 py-2 text-white text-sm placeholder-stone-500"
+          />
         </div>
         <div className="space-y-2">
           {(() => {
