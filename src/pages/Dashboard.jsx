@@ -489,7 +489,7 @@ export default function Dashboard() {
   const allYears = [...new Set(saunas.map((s) => s.date?.slice(0, 4)).filter(Boolean))].sort((a, b) => b - a);
   const activeTab = logTab || allYears[0] || thisYear;
   const tabSaunas = saunas.filter((s) => {
-    if (!s.date?.startsWith(activeTab)) return false;
+    if (activeTab !== "all" && !s.date?.startsWith(activeTab)) return false;
     if (!logSearch.trim()) return true;
     const q = logSearch.trim().toLowerCase();
     const locationMatch = (s.location || "").toLowerCase().includes(q);
@@ -716,6 +716,10 @@ export default function Dashboard() {
       <div className="bg-black/50 rounded-xl p-4">
         <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📋 Sauna log</div>
         <div className="flex gap-2 mb-3 flex-wrap">
+          <button onClick={() => setLogTab("all")}
+            className={`px-4 py-1 rounded-full text-sm font-medium transition ${activeTab === "all" ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-400 hover:bg-stone-600"}`}>
+            All
+          </button>
           {allYears.map((year) => (
             <button key={year} onClick={() => setLogTab(year)}
               className={`px-4 py-1 rounded-full text-sm font-medium transition ${activeTab === year ? "bg-orange-500 text-white" : "bg-stone-700 text-stone-400 hover:bg-stone-600"}`}>
@@ -732,8 +736,7 @@ export default function Dashboard() {
             className="w-full bg-stone-700 rounded-lg px-3 py-2 text-white text-sm placeholder-stone-500"
           />
         </div>
-        <div className="space-y-2">
-          {(() => {
+        <div className="space-y-2 pb-24">          {(() => {
             // Grupeeri sama kuupäeva järgi
             const dateGroups = {};
             tabSaunas.forEach(s => {
