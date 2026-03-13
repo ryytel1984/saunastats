@@ -474,7 +474,15 @@ export default function Dashboard() {
   const awayTopLast = Object.entries(awayCountLast).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   const compCount = {};
-  thisYearSaunas.forEach((s) => getCompanionNames(s.companions, userMap).forEach((c) => { compCount[c] = (compCount[c] || 0) + 1; }));
+  const compUidMap = {}; // name -> uid
+  thisYearSaunas.forEach((s) => {
+    (s.companions || []).forEach((c) => {
+      const name = resolveCompanionName(c, userMap);
+      if (!name) return;
+      compCount[name] = (compCount[name] || 0) + 1;
+      if (c.uid) compUidMap[name] = c.uid;
+    });
+  });
   const compTop = Object.entries(compCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   const chartData = MONTHS.map((month, i) => {
@@ -676,12 +684,20 @@ export default function Dashboard() {
       {compTop.length > 0 && (
         <div className="bg-black/50 rounded-xl p-4 mb-4">
           <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">👥 Top companions ({thisYear})</div>
-          {compTop.map(([name, count]) => (
-            <div key={name} className="flex justify-between py-1 border-b border-stone-700 last:border-0">
-              <span>{name}</span>
-              <span className="text-orange-400">{count}x</span>
-            </div>
-          ))}
+          {compTop.map(([name, count]) => {
+            const uid = compUidMap[name];
+            return uid ? (
+              <Link key={name} to={`/profile/${uid}`} className="flex justify-between py-1 border-b border-stone-700 last:border-0 hover:text-orange-400 transition">
+                <span>{name}</span>
+                <span className="text-orange-400">{count}x</span>
+              </Link>
+            ) : (
+              <div key={name} className="flex justify-between py-1 border-b border-stone-700 last:border-0">
+                <span>{name}</span>
+                <span className="text-orange-400">{count}x</span>
+              </div>
+            );
+          })}
         </div>
       )}
 
