@@ -629,7 +629,7 @@ export default function Dashboard() {
       </div>
 
       {(awayTop.length > 0 || awayTopLast.length > 0) && (
-        <div className="grid grid-cols-2 gap-3 mb-4 items-start">
+        <div className="grid grid-cols-2 gap-3 mb-4 auto-rows-min">
           {awayTop.length > 0 && (
             <div className="bg-black/50 rounded-xl p-4 mb-24 md:mb-4">
               <div className="text-stone-400 text-xs mb-3 uppercase tracking-wide">📍 Away {thisYear}</div>
