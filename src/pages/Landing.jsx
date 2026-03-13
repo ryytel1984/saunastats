@@ -91,6 +91,10 @@ export default function Landing() {
         <img src="/saunastats-logo-white.svg" alt="SaunaStats" className="w-full max-w-xs mx-auto mb-8" />
 
         {/* Stats */}
+        <div className="text-stone-400 text-xs text-center mb-4 px-4 italic leading-relaxed">
+          "{fact}"
+        </div>
+
         <div className="bg-black/40 backdrop-blur-sm rounded-2xl px-6 py-5 mb-8 w-full border border-white/10">
           <div className="grid grid-cols-3 gap-4 mb-4">
             <StatCard value={stats?.sessions ?? null} label="Saunas logged" />
@@ -101,10 +105,6 @@ export default function Landing() {
             <StatCard value={stats?.waters ?? null} label="Waters" />
             <StatCard value={stats?.userCount ?? null} label="Enthusiasts" />
           </div>
-        </div>
-
-        <div className="text-stone-400 text-xs text-center mb-6 px-4 italic leading-relaxed">
-          "{fact}"
         </div>
 
         <a
