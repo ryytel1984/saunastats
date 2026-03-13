@@ -24,8 +24,37 @@ function StatCard({ value, label }) {
   );
 }
 
+const SAUNA_FACTS = [
+  'The word "sauna" is one of the few Finnish words used around the world without translation.',
+  "Finland has more saunas than cars.",
+  "There are over 3 million saunas in Finland for just 5.5 million people.",
+  "The ideal sauna temperature is usually between 70 and 100°C.",
+  'Throwing water on hot stones creates steam called "löyly", the heart of the sauna experience.',
+  "A typical sauna session lasts about 10–20 minutes before cooling down.",
+  "Many sauna lovers cool off by jumping into cold water, rolling in snow, or taking an ice shower.",
+  "Regular sauna bathing has been linked to improved heart health.",
+  "Sauna sessions can help reduce stress and improve overall mood.",
+  "Evening sauna bathing often helps people fall asleep faster.",
+  "Traditional saunas are heated using wood-burning stoves.",
+  "Modern saunas commonly use electric heaters for easy temperature control.",
+  "Sauna heat can make your heart rate rise to levels similar to light exercise.",
+  "A single sauna session can produce up to half a liter of sweat.",
+  "Sauna bathing has been practiced in Northern Europe for over 2,000 years.",
+  "The oldest form of sauna is the smoke sauna, which has no chimney.",
+  "Sauna rooms are usually built from softwoods like cedar, spruce, or aspen.",
+  "Athletes often use saunas to relax muscles and speed up recovery.",
+  "Alternating between hot sauna and cold water stimulates blood circulation.",
+  "In Finland, many important life events were historically connected to the sauna.",
+  "In the past, saunas were often the cleanest place in the house and even used for childbirth.",
+  "Sauna heat can temporarily increase metabolism.",
+  "Many people experience clearer skin after regular sauna sessions.",
+  'In Nordic sauna culture, birch branches called "vihta" or "vasta" are used to gently stimulate the skin.',
+  "Sauna bathing is often as much about relaxation and conversation as it is about heat.",
+];
+
 export default function Landing() {
   const [stats, setStats] = useState(null);
+  const [fact] = useState(() => SAUNA_FACTS[Math.floor(Math.random() * SAUNA_FACTS.length)]);
 
   useEffect(() => {
     const load = async () => {
@@ -72,6 +101,10 @@ export default function Landing() {
             <StatCard value={stats?.waters ?? null} label="Waters" />
             <StatCard value={stats?.userCount ?? null} label="Enthusiasts" />
           </div>
+        </div>
+
+        <div className="text-stone-400 text-xs text-center mb-6 px-4 italic leading-relaxed">
+          "{fact}"
         </div>
 
         <a
